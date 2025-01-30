@@ -5,25 +5,33 @@
 // and standard deviation will be calculated for each pair of nodes.
 
 #include <mpi.h>
-#include <sys/time.h>
+#include <time.h>
 #include <stdio.h>
-//#include <stdlib.h>
-//#include <math.h>
+#include <math.h>
+#include <stdlib.h>
 
-#define NUM_NODES 8
 #define NUM_MSGS 10
+#define NUM_SIZES 16
+#define STARTING_SIZE 32768
 
+double dt(struct timespec* start, struct timespec* end){
+	return (end->tv_sec - start->tv_sec) + (end->tv_nsec - start->tv_nsec) / 1E9;
+}
 
 void send_startup_message_between_pairs(int rank) {
 	int number;
-	double start, end, rtt;
+	double rtt;
+	struct timespec start;
+	struct timespec end;
 	if (rank % 2 == 0) {
-		start = gettimeofday();
+		clock_gettime(CLOCK_MONOTONIC, &start);
 		MPI_Send(&number, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD);
-		MPI_Recv(&number, 1, MPI_INT, rank + 1,
-				 0, MPI_COMM_WORLD, &status);
-		end = gettimeofday();
-		rtt = end - start;
+		MPI_Recv(&number, 1, MPI_INT, rank + 1, 0,
+				 MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		//end = gettimeofday();
+		//rtt = end - start;
+		clock_gettime(CLOCK_MONOTONIC, &end);
+		rtt = dt(&start, &end);
 		printf("Rank %d: startup RTT = %f seconds\n", rank, rtt);
 	} else {
 		MPI_Recv(&number, 1, MPI_INT, rank - 1, 0,
@@ -33,22 +41,27 @@ void send_startup_message_between_pairs(int rank) {
 }
 
 double ping_pong(char *msg, int msg_size, int rank, int size){
-	double start, end;
+	struct timespec start;
+	struct timespec end;
+	MPI_Status status;
 	if (rank % 2 == 0) {
-		start = gettimeofday();
+		clock_gettime(CLOCK_MONOTONIC, &start);
 		MPI_Send(msg, msg_size, MPI_CHAR, rank + 1, 0, MPI_COMM_WORLD);
 		MPI_Recv(msg, msg_size, MPI_CHAR, rank + 1,
 				 0, MPI_COMM_WORLD, &status);
-		end = gettimeofday();
+		clock_gettime(CLOCK_MONOTONIC, &end);
 	} else {
 		MPI_Recv(msg, msg_size, MPI_CHAR, rank - 1,
 				 0, MPI_COMM_WORLD, &status);
 		MPI_Send(msg, msg_size, MPI_CHAR, rank - 1, 0, MPI_COMM_WORLD);
+		return 0;
 	}
-	return end - start;
+	double duration = dt(&start, &end);
+	//printf("dt = %f ms\n", duration * 1E3);
+	return duration;
 }
 
-double stddev(double *values, int n_values, double mean) {
+double standard_dev(double *values, int n_values, double mean) {
 	double sum = 0.0;
 	for (int i = 0; i < n_values; i++) {
 		sum += (values[i] - mean) * (values[i] - mean);
@@ -57,24 +70,28 @@ double stddev(double *values, int n_values, double mean) {
 }
 
 void calculate_latency(int msg_size, int num_msgs, int rank, int size) {
-	char *msg = (char *)malloc(msg_size);
-	double rtt, total_time = 0.0, mean, stddev, times[num_msgs];
-	MPI_Status status;
 
+	char *msg = (char *)malloc(msg_size);
+	double rtt_0 = ping_pong(msg, msg_size, rank, size);
+	if (rank % 2 == 0){
+		printf("Rank %d: First message to init connection/buffers had an rtt of %f msec\n", rank, 1E3 * rtt_0);
+	}
+
+	double rtt, total_time = 0.0, mean, stddev, times[num_msgs];
 	for (int i = 0; i < num_msgs; i++) {
 		rtt = ping_pong(msg, msg_size, rank, size);
-		times[i] = end - start;
-		total_time += times[i];
+		times[i] = rtt;
+		total_time += rtt;
 	}
 
 	mean = total_time / num_msgs;
 	total_time = 0.0;
 
-	stddev = stddev(times, num_msgs, mean);
+	stddev = standard_dev(times, num_msgs, mean);
 
 	if (rank % 2 == 0) {
-		printf("Rank %d: Message size %d bytes, Mean latency = %f seconds,
-		 		Stddev = %f seconds\n", rank, msg_size, mean, stddev);
+		//printf("Rank %d: Message size %d bytes, Mean latency = %f seconds, Stddev = %f seconds\n", rank, msg_size, mean, stddev);
+		printf("Rank %d: Message size %d bytes, Mean latency = %f ms, Stddev = %f ms\n", rank, msg_size, mean * 1E3, stddev * 1E3);
 	}
 
 	free(msg);
@@ -99,11 +116,18 @@ int main(int argc, char *argv[]) {
 	// Send a startup message between pairs to init the connection
 	send_startup_message_between_pairs(rank);
 
-	for (int i = 0; i < sizeof(msg_sizes) / sizeof(msg_sizes[0]); i++) {
-		calculate_latency(msg_sizes[i], NUM_MSGS, rank, size);
+	// incrementing by 2 in order to only send on even nodes.
+	//for (int i = 0; i < sizeof(msg_sizes) / sizeof(msg_sizes[0]); i++) {
+	//	calculate_latency(msg_sizes[i], NUM_MSGS, rank, size);
+	//}
+
+	int msg_size = STARTING_SIZE;
+	for (int i = 0; i < NUM_SIZES; i++){
+		msg_size = STARTING_SIZE * pow(2, i);
+		printf("Message size = %d", msg_size);
+		calculate_latency(msg_size, NUM_MSGS, rank, size);
 	}
 
-
 	MPI_Finalize();
-	return EXIT_SUCCESS;
+	return 0;
 }

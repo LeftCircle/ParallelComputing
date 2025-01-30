@@ -1,0 +1,264 @@
+Rank 12: startup RTT = 0.004121 seconds
+Rank 14: startup RTT = 0.005664 seconds
+Rank 2: startup RTT = 0.005097 seconds
+Message size = 32768Rank 12: First message to init connection/buffers had an rtt of 1.936161 msec
+Rank 12: Message size 32768 bytes, Mean latency = 0.017541 ms, Stddev = 0.000507 ms
+Message size = 65536Rank 12: First message to init connection/buffers had an rtt of 0.025248 msec
+Rank 12: Message size 65536 bytes, Mean latency = 0.025371 ms, Stddev = 0.000587 ms
+Message size = 131072Rank 12: First message to init connection/buffers had an rtt of 0.043202 msec
+Message size = 32768Rank 14: First message to init connection/buffers had an rtt of 1.929530 msec
+Rank 14: Message size 32768 bytes, Mean latency = 0.017626 ms, Stddev = 0.000571 ms
+Message size = 65536Rank 14: First message to init connection/buffers had an rtt of 0.026069 msec
+Rank 12: Message size 131072 bytes, Mean latency = 0.040190 ms, Stddev = 0.001287 ms
+Rank 14: Message size 65536 bytes, Mean latency = 0.025043 ms, Stddev = 0.000478 ms
+Message size = 131072Rank 14: First message to init connection/buffers had an rtt of 0.042561 msec
+Rank 14: Message size 131072 bytes, Mean latency = 0.039963 ms, Stddev = 0.001538 ms
+Message size = 32768Rank 2: First message to init connection/buffers had an rtt of 2.317031 msec
+Rank 2: Message size 32768 bytes, Mean latency = 0.022147 ms, Stddev = 0.004830 ms
+Message size = 65536Rank 2: First message to init connection/buffers had an rtt of 0.032850 msec
+Rank 2: Message size 65536 bytes, Mean latency = 0.029492 ms, Stddev = 0.002155 ms
+Message size = 131072Rank 2: First message to init connection/buffers had an rtt of 0.053432 msec
+Message size = 262144Rank 12: First message to init connection/buffers had an rtt of 1.686386 msec
+Rank 2: Message size 131072 bytes, Mean latency = 0.046158 ms, Stddev = 0.003964 ms
+Message size = 262144Rank 14: First message to init connection/buffers had an rtt of 1.516314 msec
+Rank 12: Message size 262144 bytes, Mean latency = 0.059135 ms, Stddev = 0.001920 ms
+Message size = 262144Rank 2: First message to init connection/buffers had an rtt of 0.492771 msec
+Rank 14: Message size 262144 bytes, Mean latency = 0.060469 ms, Stddev = 0.002291 ms
+Rank 2: Message size 262144 bytes, Mean latency = 0.058939 ms, Stddev = 0.000689 ms
+Message size = 524288Rank 2: First message to init connection/buffers had an rtt of 0.547365 msec
+Rank 2: Message size 524288 bytes, Mean latency = 0.103893 ms, Stddev = 0.002664 ms
+Message size = 524288Rank 12: First message to init connection/buffers had an rtt of 2.947423 msec
+Message size = 1048576Rank 2: First message to init connection/buffers had an rtt of 0.965127 msec
+Message size = 524288Rank 14: First message to init connection/buffers had an rtt of 2.938309 msec
+Rank 12: Message size 524288 bytes, Mean latency = 0.100643 ms, Stddev = 0.000322 ms
+Rank 14: Message size 524288 bytes, Mean latency = 0.101380 ms, Stddev = 0.000418 ms
+Rank 2: Message size 1048576 bytes, Mean latency = 0.190505 ms, Stddev = 0.003484 ms
+Rank 10: startup RTT = 0.014382 seconds
+Message size = 1048576Rank 12: First message to init connection/buffers had an rtt of 3.204301 msec
+Message size = 2097152Rank 2: First message to init connection/buffers had an rtt of 2.070281 msec
+Message size = 1048576Rank 14: First message to init connection/buffers had an rtt of 3.359761 msec
+Rank 0: startup RTT = 0.017949 seconds
+Rank 12: Message size 1048576 bytes, Mean latency = 0.185133 ms, Stddev = 0.000227 ms
+Message size = 32768Rank 10: First message to init connection/buffers had an rtt of 2.314810 msec
+Rank 10: Message size 32768 bytes, Mean latency = 0.022535 ms, Stddev = 0.005161 ms
+Message size = 65536Rank 10: First message to init connection/buffers had an rtt of 0.031889 msec
+Rank 14: Message size 1048576 bytes, Mean latency = 0.185870 ms, Stddev = 0.001022 ms
+Rank 10: Message size 65536 bytes, Mean latency = 0.028547 ms, Stddev = 0.000384 ms
+Message size = 131072Rank 10: First message to init connection/buffers had an rtt of 0.059766 msec
+Rank 10: Message size 131072 bytes, Mean latency = 0.044418 ms, Stddev = 0.000754 ms
+Message size = 262144Rank 10: First message to init connection/buffers had an rtt of 0.611247 msec
+Rank 2: Message size 2097152 bytes, Mean latency = 0.357357 ms, Stddev = 0.002361 ms
+Message size = 32768Rank 0: First message to init connection/buffers had an rtt of 2.421470 msec
+Rank 0: Message size 32768 bytes, Mean latency = 0.021014 ms, Stddev = 0.000790 ms
+Message size = 65536Rank 0: First message to init connection/buffers had an rtt of 0.032729 msec
+Rank 10: Message size 262144 bytes, Mean latency = 0.059013 ms, Stddev = 0.000697 ms
+Rank 0: Message size 65536 bytes, Mean latency = 0.030656 ms, Stddev = 0.004122 ms
+Message size = 131072Rank 0: First message to init connection/buffers had an rtt of 0.131269 msec
+Message size = 524288Rank 10: First message to init connection/buffers had an rtt of 0.563609 msec
+Message size = 2097152Rank 12: First message to init connection/buffers had an rtt of 3.102087 msec
+Rank 0: Message size 131072 bytes, Mean latency = 0.045209 ms, Stddev = 0.000772 ms
+Message size = 2097152Rank 14: First message to init connection/buffers had an rtt of 3.136185 msec
+Message size = 262144Rank 0: First message to init connection/buffers had an rtt of 0.532785 msec
+Rank 10: Message size 524288 bytes, Mean latency = 0.103166 ms, Stddev = 0.002239 ms
+Rank 0: Message size 262144 bytes, Mean latency = 0.058896 ms, Stddev = 0.001003 ms
+Message size = 4194304Rank 2: First message to init connection/buffers had an rtt of 2.634217 msec
+Message size = 1048576Rank 10: First message to init connection/buffers had an rtt of 0.793231 msec
+Message size = 524288Rank 0: First message to init connection/buffers had an rtt of 0.608913 msec
+Rank 0: Message size 524288 bytes, Mean latency = 0.103204 ms, Stddev = 0.002377 ms
+Rank 12: Message size 2097152 bytes, Mean latency = 0.354706 ms, Stddev = 0.000287 ms
+Rank 10: Message size 1048576 bytes, Mean latency = 0.190229 ms, Stddev = 0.001986 ms
+Message size = 1048576Rank 0: First message to init connection/buffers had an rtt of 0.846105 msec
+Rank 14: Message size 2097152 bytes, Mean latency = 0.354639 ms, Stddev = 0.000362 ms
+Rank 8: startup RTT = 0.025441 seconds
+Rank 0: Message size 1048576 bytes, Mean latency = 0.189892 ms, Stddev = 0.001366 ms
+Message size = 2097152Rank 10: First message to init connection/buffers had an rtt of 2.077385 msec
+Rank 4: startup RTT = 0.027154 seconds
+Message size = 32768Rank 8: First message to init connection/buffers had an rtt of 2.356497 msec
+Rank 8: Message size 32768 bytes, Mean latency = 0.021494 ms, Stddev = 0.004730 ms
+Message size = 65536Rank 8: First message to init connection/buffers had an rtt of 0.031555 msec
+Rank 8: Message size 65536 bytes, Mean latency = 0.028004 ms, Stddev = 0.000498 ms
+Message size = 131072Rank 8: First message to init connection/buffers had an rtt of 0.058914 msec
+Rank 8: Message size 131072 bytes, Mean latency = 0.044454 ms, Stddev = 0.001511 ms
+Message size = 2097152Rank 0: First message to init connection/buffers had an rtt of 2.189242 msec
+Message size = 4194304Rank 12: First message to init connection/buffers had an rtt of 4.416396 msec
+Message size = 262144Rank 8: First message to init connection/buffers had an rtt of 0.571365 msec
+Rank 2: Message size 4194304 bytes, Mean latency = 0.696682 ms, Stddev = 0.000865 ms
+Message size = 32768Rank 4: First message to init connection/buffers had an rtt of 2.325007 msec
+Rank 4: Message size 32768 bytes, Mean latency = 0.021559 ms, Stddev = 0.004892 ms
+Message size = 65536Rank 4: First message to init connection/buffers had an rtt of 0.031540 msec
+Message size = 4194304Rank 14: First message to init connection/buffers had an rtt of 4.611031 msec
+Rank 8: Message size 262144 bytes, Mean latency = 0.059647 ms, Stddev = 0.001318 ms
+Rank 4: Message size 65536 bytes, Mean latency = 0.028265 ms, Stddev = 0.000385 ms
+Message size = 131072Rank 4: First message to init connection/buffers had an rtt of 0.051616 msec
+Message size = 524288Rank 8: First message to init connection/buffers had an rtt of 0.562522 msec
+Rank 10: Message size 2097152 bytes, Mean latency = 0.364161 ms, Stddev = 0.021655 ms
+Rank 6: startup RTT = 0.030500 seconds
+Rank 4: Message size 131072 bytes, Mean latency = 0.044012 ms, Stddev = 0.000607 ms
+Message size = 262144Rank 4: First message to init connection/buffers had an rtt of 0.449191 msec
+Rank 8: Message size 524288 bytes, Mean latency = 0.101790 ms, Stddev = 0.000290 ms
+Rank 4: Message size 262144 bytes, Mean latency = 0.059408 ms, Stddev = 0.001322 ms
+Message size = 524288Rank 4: First message to init connection/buffers had an rtt of 0.311521 msec
+Message size = 1048576Rank 8: First message to init connection/buffers had an rtt of 0.975865 msec
+Rank 0: Message size 2097152 bytes, Mean latency = 0.356599 ms, Stddev = 0.000558 ms
+Message size = 32768Rank 6: First message to init connection/buffers had an rtt of 2.351267 msec
+Rank 6: Message size 32768 bytes, Mean latency = 0.020696 ms, Stddev = 0.001279 ms
+Rank 4: Message size 524288 bytes, Mean latency = 0.103245 ms, Stddev = 0.002218 ms
+Message size = 65536Rank 6: First message to init connection/buffers had an rtt of 0.033285 msec
+Message size = 4194304Rank 10: First message to init connection/buffers had an rtt of 2.603814 msec
+Rank 6: Message size 65536 bytes, Mean latency = 0.029112 ms, Stddev = 0.001711 ms
+Message size = 131072Rank 6: First message to init connection/buffers had an rtt of 0.083152 msec
+Message size = 1048576Rank 4: First message to init connection/buffers had an rtt of 0.617976 msec
+Message size = 8388608Rank 2: First message to init connection/buffers had an rtt of 4.288964 msec
+Rank 6: Message size 131072 bytes, Mean latency = 0.043810 ms, Stddev = 0.000455 ms
+Message size = 262144Rank 6: First message to init connection/buffers had an rtt of 0.357937 msec
+Rank 8: Message size 1048576 bytes, Mean latency = 0.188163 ms, Stddev = 0.000569 ms
+Rank 6: Message size 262144 bytes, Mean latency = 0.058503 ms, Stddev = 0.001571 ms
+Message size = 524288Rank 6: First message to init connection/buffers had an rtt of 0.643463 msec
+Rank 4: Message size 1048576 bytes, Mean latency = 0.188980 ms, Stddev = 0.000612 ms
+Message size = 4194304Rank 0: First message to init connection/buffers had an rtt of 3.111498 msec
+Rank 12: Message size 4194304 bytes, Mean latency = 0.694512 ms, Stddev = 0.000219 ms
+Rank 6: Message size 524288 bytes, Mean latency = 0.100745 ms, Stddev = 0.000302 ms
+Message size = 2097152Rank 8: First message to init connection/buffers had an rtt of 2.164256 msec
+Rank 14: Message size 4194304 bytes, Mean latency = 0.694432 ms, Stddev = 0.000316 ms
+Message size = 1048576Rank 6: First message to init connection/buffers had an rtt of 0.822917 msec
+Message size = 2097152Rank 4: First message to init connection/buffers had an rtt of 1.997415 msec
+Rank 6: Message size 1048576 bytes, Mean latency = 0.187236 ms, Stddev = 0.001944 ms
+Rank 10: Message size 4194304 bytes, Mean latency = 0.696282 ms, Stddev = 0.000705 ms
+Rank 8: Message size 2097152 bytes, Mean latency = 0.356326 ms, Stddev = 0.000450 ms
+Rank 4: Message size 2097152 bytes, Mean latency = 0.356185 ms, Stddev = 0.000593 ms
+Message size = 2097152Rank 6: First message to init connection/buffers had an rtt of 2.081055 msec
+Message size = 8388608Rank 12: First message to init connection/buffers had an rtt of 6.246965 msec
+Rank 0: Message size 4194304 bytes, Mean latency = 0.697108 ms, Stddev = 0.002038 ms
+Message size = 4194304Rank 8: First message to init connection/buffers had an rtt of 2.632548 msec
+Message size = 8388608Rank 14: First message to init connection/buffers had an rtt of 6.179184 msec
+Message size = 4194304Rank 4: First message to init connection/buffers had an rtt of 2.620844 msec
+Message size = 8388608Rank 10: First message to init connection/buffers had an rtt of 4.316471 msec
+Rank 6: Message size 2097152 bytes, Mean latency = 0.356993 ms, Stddev = 0.002546 ms
+Message size = 8388608Rank 0: First message to init connection/buffers had an rtt of 4.527303 msec
+Rank 2: Message size 8388608 bytes, Mean latency = 1.377442 ms, Stddev = 0.001233 ms
+Message size = 4194304Rank 6: First message to init connection/buffers had an rtt of 2.849585 msec
+Rank 8: Message size 4194304 bytes, Mean latency = 0.698276 ms, Stddev = 0.004945 ms
+Rank 4: Message size 4194304 bytes, Mean latency = 0.699100 ms, Stddev = 0.004752 ms
+Message size = 8388608Rank 8: First message to init connection/buffers had an rtt of 4.370963 msec
+Rank 6: Message size 4194304 bytes, Mean latency = 0.697007 ms, Stddev = 0.003457 ms
+Message size = 8388608Rank 4: First message to init connection/buffers had an rtt of 4.272326 msec
+Rank 12: Message size 8388608 bytes, Mean latency = 1.373899 ms, Stddev = 0.000298 ms
+Rank 14: Message size 8388608 bytes, Mean latency = 1.374308 ms, Stddev = 0.001316 ms
+Message size = 16777216Rank 2: First message to init connection/buffers had an rtt of 10.283375 msec
+Rank 10: Message size 8388608 bytes, Mean latency = 1.378591 ms, Stddev = 0.003710 ms
+Message size = 8388608Rank 6: First message to init connection/buffers had an rtt of 4.338601 msec
+Rank 0: Message size 8388608 bytes, Mean latency = 1.376468 ms, Stddev = 0.000685 ms
+Message size = 16777216Rank 12: First message to init connection/buffers had an rtt of 9.511391 msec
+Message size = 16777216Rank 14: First message to init connection/buffers had an rtt of 10.022135 msec
+Rank 8: Message size 8388608 bytes, Mean latency = 1.380630 ms, Stddev = 0.007484 ms
+Message size = 16777216Rank 10: First message to init connection/buffers had an rtt of 10.503143 msec
+Rank 4: Message size 8388608 bytes, Mean latency = 1.377480 ms, Stddev = 0.002959 ms
+Message size = 16777216Rank 0: First message to init connection/buffers had an rtt of 10.651862 msec
+Rank 6: Message size 8388608 bytes, Mean latency = 1.381499 ms, Stddev = 0.009614 ms
+Message size = 16777216Rank 8: First message to init connection/buffers had an rtt of 10.230626 msec
+Message size = 16777216Rank 4: First message to init connection/buffers had an rtt of 10.275172 msec
+Message size = 16777216Rank 6: First message to init connection/buffers had an rtt of 10.257470 msec
+Rank 2: Message size 16777216 bytes, Mean latency = 2.742549 ms, Stddev = 0.008692 ms
+Rank 12: Message size 16777216 bytes, Mean latency = 2.732846 ms, Stddev = 0.000407 ms
+Rank 14: Message size 16777216 bytes, Mean latency = 2.732871 ms, Stddev = 0.000365 ms
+Rank 10: Message size 16777216 bytes, Mean latency = 2.745653 ms, Stddev = 0.015195 ms
+Rank 0: Message size 16777216 bytes, Mean latency = 2.737643 ms, Stddev = 0.002809 ms
+Rank 8: Message size 16777216 bytes, Mean latency = 2.742822 ms, Stddev = 0.011710 ms
+Message size = 33554432Rank 2: First message to init connection/buffers had an rtt of 20.325355 msec
+Rank 4: Message size 16777216 bytes, Mean latency = 2.742433 ms, Stddev = 0.011343 ms
+Rank 6: Message size 16777216 bytes, Mean latency = 2.739555 ms, Stddev = 0.002239 ms
+Message size = 33554432Rank 12: First message to init connection/buffers had an rtt of 18.687846 msec
+Message size = 33554432Rank 14: First message to init connection/buffers had an rtt of 20.461623 msec
+Message size = 33554432Rank 10: First message to init connection/buffers had an rtt of 20.793164 msec
+Message size = 33554432Rank 0: First message to init connection/buffers had an rtt of 21.328174 msec
+Message size = 33554432Rank 8: First message to init connection/buffers had an rtt of 20.205816 msec
+Message size = 33554432Rank 4: First message to init connection/buffers had an rtt of 20.203433 msec
+Message size = 33554432Rank 6: First message to init connection/buffers had an rtt of 20.559967 msec
+Rank 2: Message size 33554432 bytes, Mean latency = 5.489220 ms, Stddev = 0.053663 ms
+Rank 12: Message size 33554432 bytes, Mean latency = 5.450826 ms, Stddev = 0.001319 ms
+Rank 14: Message size 33554432 bytes, Mean latency = 5.450726 ms, Stddev = 0.001591 ms
+Rank 10: Message size 33554432 bytes, Mean latency = 5.471177 ms, Stddev = 0.026244 ms
+Rank 0: Message size 33554432 bytes, Mean latency = 5.473533 ms, Stddev = 0.016959 ms
+Rank 8: Message size 33554432 bytes, Mean latency = 5.476139 ms, Stddev = 0.032232 ms
+Rank 4: Message size 33554432 bytes, Mean latency = 5.484805 ms, Stddev = 0.036573 ms
+Rank 6: Message size 33554432 bytes, Mean latency = 5.486445 ms, Stddev = 0.027304 ms
+Message size = 67108864Rank 2: First message to init connection/buffers had an rtt of 39.428199 msec
+Message size = 67108864Rank 12: First message to init connection/buffers had an rtt of 34.031525 msec
+Message size = 67108864Rank 14: First message to init connection/buffers had an rtt of 35.056678 msec
+Message size = 67108864Rank 10: First message to init connection/buffers had an rtt of 40.105747 msec
+Message size = 67108864Rank 0: First message to init connection/buffers had an rtt of 41.423420 msec
+Message size = 67108864Rank 8: First message to init connection/buffers had an rtt of 39.048619 msec
+Message size = 67108864Rank 4: First message to init connection/buffers had an rtt of 39.052923 msec
+Message size = 67108864Rank 6: First message to init connection/buffers had an rtt of 39.878234 msec
+Rank 12: Message size 67108864 bytes, Mean latency = 10.886184 ms, Stddev = 0.001344 ms
+Rank 2: Message size 67108864 bytes, Mean latency = 10.966547 ms, Stddev = 0.073871 ms
+Rank 14: Message size 67108864 bytes, Mean latency = 10.886233 ms, Stddev = 0.002341 ms
+Rank 10: Message size 67108864 bytes, Mean latency = 10.962525 ms, Stddev = 0.067108 ms
+Rank 0: Message size 67108864 bytes, Mean latency = 10.961756 ms, Stddev = 0.064306 ms
+Rank 8: Message size 67108864 bytes, Mean latency = 10.975861 ms, Stddev = 0.080146 ms
+Rank 4: Message size 67108864 bytes, Mean latency = 10.976490 ms, Stddev = 0.056685 ms
+Rank 6: Message size 67108864 bytes, Mean latency = 10.975539 ms, Stddev = 0.066700 ms
+Message size = 134217728Rank 12: First message to init connection/buffers had an rtt of 65.797202 msec
+Message size = 134217728Rank 14: First message to init connection/buffers had an rtt of 66.770747 msec
+Message size = 134217728Rank 2: First message to init connection/buffers had an rtt of 77.642745 msec
+Message size = 134217728Rank 10: First message to init connection/buffers had an rtt of 80.026072 msec
+Message size = 134217728Rank 0: First message to init connection/buffers had an rtt of 81.294202 msec
+Message size = 134217728Rank 8: First message to init connection/buffers had an rtt of 78.132648 msec
+Message size = 134217728Rank 4: First message to init connection/buffers had an rtt of 77.413341 msec
+Message size = 134217728Rank 6: First message to init connection/buffers had an rtt of 79.260059 msec
+Rank 12: Message size 134217728 bytes, Mean latency = 21.768566 ms, Stddev = 0.034010 ms
+Rank 14: Message size 134217728 bytes, Mean latency = 21.757368 ms, Stddev = 0.002367 ms
+Rank 2: Message size 134217728 bytes, Mean latency = 22.075593 ms, Stddev = 0.093638 ms
+Rank 10: Message size 134217728 bytes, Mean latency = 22.037171 ms, Stddev = 0.086741 ms
+Rank 0: Message size 134217728 bytes, Mean latency = 22.034568 ms, Stddev = 0.148080 ms
+Rank 8: Message size 134217728 bytes, Mean latency = 22.043422 ms, Stddev = 0.145667 ms
+Rank 4: Message size 134217728 bytes, Mean latency = 22.058837 ms, Stddev = 0.075497 ms
+Rank 6: Message size 134217728 bytes, Mean latency = 22.084892 ms, Stddev = 0.171676 ms
+Message size = 268435456Rank 12: First message to init connection/buffers had an rtt of 123.986612 msec
+Message size = 268435456Rank 14: First message to init connection/buffers had an rtt of 127.975566 msec
+Message size = 268435456Rank 2: First message to init connection/buffers had an rtt of 156.469715 msec
+Message size = 268435456Rank 10: First message to init connection/buffers had an rtt of 160.360311 msec
+Message size = 268435456Rank 4: First message to init connection/buffers had an rtt of 155.878953 msec
+Message size = 268435456Rank 8: First message to init connection/buffers had an rtt of 157.524889 msec
+Message size = 268435456Rank 0: First message to init connection/buffers had an rtt of 163.794667 msec
+Message size = 268435456Rank 6: First message to init connection/buffers had an rtt of 159.524890 msec
+Rank 12: Message size 268435456 bytes, Mean latency = 43.514405 ms, Stddev = 0.044456 ms
+Rank 14: Message size 268435456 bytes, Mean latency = 43.512758 ms, Stddev = 0.039355 ms
+Rank 2: Message size 268435456 bytes, Mean latency = 44.772929 ms, Stddev = 0.255051 ms
+Rank 10: Message size 268435456 bytes, Mean latency = 44.685908 ms, Stddev = 0.246069 ms
+Rank 4: Message size 268435456 bytes, Mean latency = 44.760603 ms, Stddev = 0.285231 ms
+Rank 8: Message size 268435456 bytes, Mean latency = 44.700929 ms, Stddev = 0.239800 ms
+Rank 0: Message size 268435456 bytes, Mean latency = 44.663581 ms, Stddev = 0.184307 ms
+Rank 6: Message size 268435456 bytes, Mean latency = 44.756940 ms, Stddev = 0.201966 ms
+Message size = 536870912Rank 12: First message to init connection/buffers had an rtt of 247.898592 msec
+Message size = 536870912Rank 14: First message to init connection/buffers had an rtt of 261.471232 msec
+Message size = 536870912Rank 2: First message to init connection/buffers had an rtt of 324.467628 msec
+Message size = 536870912Rank 8: First message to init connection/buffers had an rtt of 323.236411 msec
+Message size = 536870912Rank 4: First message to init connection/buffers had an rtt of 326.509803 msec
+Message size = 536870912Rank 10: First message to init connection/buffers had an rtt of 334.346773 msec
+Message size = 536870912Rank 6: First message to init connection/buffers had an rtt of 331.819308 msec
+Message size = 536870912Rank 0: First message to init connection/buffers had an rtt of 337.779876 msec
+Rank 12: Message size 536870912 bytes, Mean latency = 87.151758 ms, Stddev = 0.037735 ms
+Rank 14: Message size 536870912 bytes, Mean latency = 87.123407 ms, Stddev = 0.034902 ms
+Rank 2: Message size 536870912 bytes, Mean latency = 93.548890 ms, Stddev = 0.444242 ms
+Rank 8: Message size 536870912 bytes, Mean latency = 93.295076 ms, Stddev = 0.181285 ms
+Rank 4: Message size 536870912 bytes, Mean latency = 93.290113 ms, Stddev = 0.164803 ms
+Rank 10: Message size 536870912 bytes, Mean latency = 93.296028 ms, Stddev = 0.073827 ms
+Rank 0: Message size 536870912 bytes, Mean latency = 93.181269 ms, Stddev = 0.193899 ms
+Rank 6: Message size 536870912 bytes, Mean latency = 93.527668 ms, Stddev = 0.416705 ms
+Message size = 1073741824Rank 12: First message to init connection/buffers had an rtt of 505.646406 msec
+Message size = 1073741824Rank 14: First message to init connection/buffers had an rtt of 508.879112 msec
+Message size = 1073741824Rank 2: First message to init connection/buffers had an rtt of 668.091974 msec
+Message size = 1073741824Rank 8: First message to init connection/buffers had an rtt of 661.213605 msec
+Message size = 1073741824Rank 4: First message to init connection/buffers had an rtt of 667.125592 msec
+Message size = 1073741824Rank 10: First message to init connection/buffers had an rtt of 689.188351 msec
+Message size = 1073741824Rank 6: First message to init connection/buffers had an rtt of 675.966325 msec
+Message size = 1073741824Rank 0: First message to init connection/buffers had an rtt of 695.327598 msec
+Rank 12: Message size 1073741824 bytes, Mean latency = 182.241117 ms, Stddev = 0.153336 ms
+Rank 14: Message size 1073741824 bytes, Mean latency = 182.268263 ms, Stddev = 0.154339 ms
+Rank 2: Message size 1073741824 bytes, Mean latency = 205.768472 ms, Stddev = 0.222195 ms
+Rank 8: Message size 1073741824 bytes, Mean latency = 205.534781 ms, Stddev = 0.130188 ms
+Rank 4: Message size 1073741824 bytes, Mean latency = 205.691505 ms, Stddev = 0.171088 ms
+Rank 10: Message size 1073741824 bytes, Mean latency = 205.318214 ms, Stddev = 0.163209 ms
+Rank 6: Message size 1073741824 bytes, Mean latency = 205.683759 ms, Stddev = 0.209431 ms
+Rank 0: Message size 1073741824 bytes, Mean latency = 204.970077 ms, Stddev = 0.120052 ms
