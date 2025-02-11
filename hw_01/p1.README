@@ -1,0 +1,48 @@
+This program determines the point-to-point message latency for pairs of
+nodes. The program uses 8 nodes, and sends messages of size
+32kb, 64kb, 128kb, 256kb, 512kb, 1mb, 2mb
+10 messages of each size will be sent per pair of nodes, and the average
+and standard deviation will be calculated for each pair of nodes.
+
+The number of different sized messages can also be changed by updating
+NUM_SIZES and the STARTING_SIZE. Just be sure not to go over half the max
+positive value for an int, or the code breaks. 
+
+Question:
+(20 points) In the p1.README file, explain your plots. Compare the latency
+across four scenarios. In particular, could your results indicate something
+about the underlying network configuration? Also discuss the relationship
+between message sizes and latency. Are there any unusual data points in
+your graphs? If so, elaborate.
+
+Response:
+
+The plot clearly shows that latency increases with message size, and an important piece
+to note is that the rtt increases at a slower rate than the message size.
+This shows that in general it is better to pack as much data as possible into each packet
+as opposed to sending lots of smaller packets. Another piece to note is that the latency
+between pairs of nodes are approximately the same.
+It should also be noted that the first message sent between pairs was not included in
+the RTT each time that the packet size was increased. I attempted to only discard the
+first message sent between nodes, but noticed that the first message had a significantly
+larger RTT each time the payload changed. I’m not entirely sure why this is the case,
+but I imagine it has something to do with MPI accessing the memory and creating the
+buffers to handle each new packet size.
+I was curious to see how increasing the size of the data affected the change in latency,
+and at what point sending two messages might be better than packing more data into
+a packet. For 8 nodes communicating in parallel, I found the following:
+Higher latency over lower = 1.44 for 32768 bytes and 65536 bytes
+Higher latency over lower = 1.31 for 131072 bytes and 262144 bytes
+Higher latency over lower = 1.84 for 524288 bytes and 1048576 bytes
+Higher latency over lower = 1.96 for 2097152 bytes and 4194304 bytes
+Higher latency over lower = 1.99 for 8388608 bytes and 16777216 bytes
+Higher latency over lower = 2.00 for 33554432 bytes and 67108864 bytes
+Higher latency over lower = 2.00 for 134217728 bytes and 268435456 bytes
+Higher latency over lower = 2.07 for 536870912 bytes and 1073741824 bytes
+3
+With four pairs of two nodes communicating back and fourth, once about 30 MB are
+being sent, doubling the packet size started to result in the latency doubling as well.
+I tried running the same thing with eight pairs of nodes and found the same result.
+This leads me to believe that communication between a pair of nodes does not affect
+the latency of communication between another pair of nodes, so each node likely has a
+direct line to every other node.

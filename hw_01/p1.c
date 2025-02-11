@@ -1,3 +1,8 @@
+// -----------------------------------------
+// Richard Cato
+// 1/30/2025
+// NCSU CSC 548 Parallel Systems
+// -----------------------------------------
 // This program determines the point-to-point message latency for pairs of
 // nodes. The program uses 8 nodes, and sends messages of size
 // 32kb, 64kb, 128kb, 256kb, 512kb, 1mb, 2mb
@@ -116,7 +121,6 @@ int main(int argc, char *argv[]) {
 	// Send a startup message between pairs to init the connection
 	send_startup_message_between_pairs(rank);
 
-	// incrementing by 2 in order to only send on even nodes.
 	//for (int i = 0; i < sizeof(msg_sizes) / sizeof(msg_sizes[0]); i++) {
 	//	calculate_latency(msg_sizes[i], NUM_MSGS, rank, size);
 	//}
@@ -124,7 +128,6 @@ int main(int argc, char *argv[]) {
 	int msg_size = STARTING_SIZE;
 	for (int i = 0; i < NUM_SIZES; i++){
 		msg_size = STARTING_SIZE * pow(2, i);
-		printf("Message size = %d", msg_size);
 		calculate_latency(msg_size, NUM_MSGS, rank, size);
 	}
 
