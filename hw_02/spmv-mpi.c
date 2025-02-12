@@ -98,11 +98,13 @@ int main(int argc, char** argv)
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+	printf("mpi node %d of %d is up and running\n", rank, size);
 
     if (get_arg(argc, argv, "help") != NULL){
         if (rank == 0){
 			usage(argc, argv);
 		}
+		MPI_Finalize();
         return 0;
     }
 
@@ -110,93 +112,146 @@ int main(int argc, char** argv)
     char * mm_filename = NULL;
     if (argc == 1) {
         printf("Give a MatrixMarket file.\n");
+		MPI_Finalize();
         return -1;
     } else if (rank == 0){ 
         mm_filename = argv[1];
 	}
+
+	// The size of the arrays that node 0 will send
+	coo_matrix coo;
+	float * x;
+	float * y;
+
 	if (rank == 0){
-    	coo_matrix coo;
+    	//coo_matrix coo;
     	read_coo_matrix(&coo, mm_filename);
 	
     	// fill matrix with random values: some matrices have extreme values, 
     	// which makes correctness testing difficult, especially in single precision
     	srand(13);
 		for(int i = 0; i < coo.num_nonzeros; i++) {
-			coo.vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
+			#ifdef DEBUG
+				coo.vals[i] = i;
+			#else
+				coo.vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
 			// coo.vals[i] = 1.0;
+			#endif
 		}
 		
 		printf("\nfile=%s rows=%d cols=%d nonzeros=%d\n", mm_filename, coo.num_rows, coo.num_cols, coo.num_nonzeros);
 		fflush(stdout);
-	}
 
-#ifdef TESTING
-//print in COO format
-	if (rank == 0){
-		printf("Writing matrix in COO format to test_COO ...");
-		FILE *fp = fopen("test_COO", "w");
-		fprintf(fp, "%d\t%d\t%d\n", coo.num_rows, coo.num_cols, coo.num_nonzeros);
-		fprintf(fp, "coo.rows:\n");
-		for (int i=0; i<coo.num_nonzeros; i++)
-		{
-		fprintf(fp, "%d  ", coo.rows[i]);
-		}
-		fprintf(fp, "\n\n");
-		fprintf(fp, "coo.cols:\n");
-		for (int i=0; i<coo.num_nonzeros; i++)
-		{
-		fprintf(fp, "%d  ", coo.cols[i]);
-		}
-		fprintf(fp, "\n\n");
-		fprintf(fp, "coo.vals:\n");
-		for (int i=0; i<coo.num_nonzeros; i++)
-		{
-		fprintf(fp, "%f  ", coo.vals[i]);
-		}
-		fprintf(fp, "\n");
-		fclose(fp);
-		printf("... done!\n");
-	}
-#endif 
+		#ifdef TESTING
+		//print in COO format
+			if (rank == 0){
+				printf("Writing matrix in COO format to test_COO ...");
+				FILE *fp = fopen("test_COO", "w");
+				fprintf(fp, "%d\t%d\t%d\n", coo.num_rows, coo.num_cols, coo.num_nonzeros);
+				fprintf(fp, "coo.rows:\n");
+				for (int i=0; i<coo.num_nonzeros; i++)
+				{
+				fprintf(fp, "%d  ", coo.rows[i]);
+				}
+				fprintf(fp, "\n\n");
+				fprintf(fp, "coo.cols:\n");
+				for (int i=0; i<coo.num_nonzeros; i++)
+				{
+				fprintf(fp, "%d  ", coo.cols[i]);
+				}
+				fprintf(fp, "\n\n");
+				fprintf(fp, "coo.vals:\n");
+				for (int i=0; i<coo.num_nonzeros; i++)
+				{
+				fprintf(fp, "%f  ", coo.vals[i]);
+				}
+				fprintf(fp, "\n");
+				fclose(fp);
+				printf("... done!\n");
+			}
+		#endif 
 
-	// Start by just scattering the data then printing it
-	// rank 0 needs to let each node know how much data they will get
-	if (rank == 0){
-		float *all_x = (int *)malloc(coo.num_cols * sizeof(int));
-		float *all_y = (int *)malloc(coo.num_rows * sizeof(int));
+		// Start by just scattering the data then printing it
+		// rank 0 needs to let each node know how much data they will get
+		x = (int *)malloc(coo.num_cols * sizeof(int));
+		y = (int *)malloc(coo.num_rows * sizeof(int));
 		for (int i = 0; i < coo.num_cols; i++){
-			all_x[i] = rand() / (RAND_MAX + 1.0);
+			#ifdef DEBUG
+			x[i] = [i];
+			#else
+			x[i] = rand() / (RAND_MAX + 1.0);
+			#endif
 		}
 		for (int i = 0; i < coo.num_rows; i++){
-			all_y[i] = 0;
+			y[i] = 0;
 		}
 
 		// Now we have to distribute the data. 
 		// Each node will get the entire y array, a full x array that will
 		// later be summed up, and a portion of the row/column/value from the
 		// coo array
-		int *workload_array = (int *)malloc(size * sizeof(int));
-		split_workload(coo.num_nonzeros, size, workload_array);
-		
+		int *workload_array_size = (int *)malloc(size * sizeof(int));
+		int *workload_displs = (int*)malloc(size * sizeof(int));
+		split_workload(coo.num_nonzeros, size, workload_array_size, workload_displs);
+		int *vals_displ = (int*)malloc(size * sizeof(int));
+		for (int i = 0; i < size; i++){
+			vals_displ[i] = workload_array_size[i] * sizeof(float);
+		}
+
 		// now we have to scatter the workload array so each node can create a
 		// buffer for the correct amount of data
-		int workload_size = workload_array[rank];
-		MPI_Scatter(workload_array, 1, MPI_INT, &workload_size, 1, MPI_INT,
-			 0, MPI_COMM_WORLD);
+		MPI_Scatter(workload_array_size, 1, MPI_INT, &workload_size, 1, MPI_INT,
+			0, MPI_COMM_WORLD);
+		MPI_Scatterv(coo.rows, workload_array_size, workload_displs, MPI_INT,
+					 coo.rows, coo.num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+		MPI_Scatterv(coo.cols, workload_array_size, workload_displs, MPI_INT,
+					 coo.cols, coo.num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+		MPI_Scatterv(coo.vals, workload_array_size, vals_displ, MPI_FLOAT,
+					 coo.vals, coo.num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
 		
-		// Now free the stuff
-		free(workload_array);
-		free(all_x);
-		free(all_y);
-		delete_coo_matrix(&coo);
-	} else {
-		int workload_size;
+		printf("Rank %d got workload size %d\n", rank, workload_size);
+		free(workload_array_size);
+		free(workload_displs);
+		free(vals_displ);
+	} else{
+		// Recieve workload size
 		MPI_Scatter(NULL, 1, MPI_INT, &workload_size, 1, MPI_INT,
-			 0, MPI_COMM_WORLD);
+			0, MPI_COMM_WORLD);
+		// Allocate space for the values
+		coo->rows = (int*)malloc(workload_size * sizeof(int));
+		coo->cols = (int*)malloc(workload_size * sizeof(int));
+		coo->vals = (float*)malloc(workload_size * sizeof(float));
+
+		// Now receive the buffers for this nodes portion of work
+		MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo.rows, coo.num_nonzeros,
+					 MPI_INT, 0, MPI_COMM_WORLD);
+		MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo.cols, coo.num_nonzeros,
+		 			 MPI_INT, 0, MPI_COMM_WORLD);
+		MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, coo.rows, coo.num_nonzeros,
+					 MPI_FLOAT, 0, MPI_COMM_WORLD);	 
 		#ifdef DEBUG
 		printf("Rank %d got workload size %d\n", rank, workload_size);
 		#endif
 	}
+	// Now send the size for the arrays so that the x and y vecs can be set
+	MPI_Bcast(coo.num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(coo.num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	if (rank != 0){
+		x = (int *)malloc(coo.num_cols * sizeof(int));
+		y = (int *)malloc(coo.num_rows * sizeof(int));
+		for (int i = 0; i < coo.num_rows; i++){
+			y[i] = 0;
+		}
+	}
+	// Now we can send the x array with the data in it
+	MPI_Bcast(x, coo.num_cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	
+	// Each node should now have it's own coo.
+	// Let's try printing it
+	#ifdef DEBUG
+	printf("Rank %d has %d nonzeros from %d to %d", rank, coo.num_nonzeros, coo.vals[0], coo.vals[coo.num_nonzeros - 1]);
+	#endif
 
     /* Benchmarking */
     //double coo_gflops;
@@ -223,7 +278,11 @@ int main(int argc, char** argv)
     //delete_coo_matrix(&coo);
     //free(x);
     //free(y);
-
+	// Now free the stuff
+	free(x);
+	free(y);
+	delete_coo_matrix(&coo);
+	MPI_Finalize();
     return 0;
 }
 
