@@ -140,6 +140,7 @@ int main(int argc, char** argv)
 		}
 		
 		printf("\nfile=%s rows=%d cols=%d nonzeros=%d\n", mm_filename, coo.num_rows, coo.num_cols, coo.num_nonzeros);
+		printf("nonzeros range from %d to %d\n", coo.vals[0], coo.vals[coo.num_nonzeros - 1]);
 		fflush(stdout);
 
 		#ifdef TESTING
@@ -173,11 +174,11 @@ int main(int argc, char** argv)
 
 		// Start by just scattering the data then printing it
 		// rank 0 needs to let each node know how much data they will get
-		x = (int *)malloc(coo.num_cols * sizeof(int));
-		y = (int *)malloc(coo.num_rows * sizeof(int));
+		x = (float *)malloc(coo.num_cols * sizeof(float));
+		y = (float *)malloc(coo.num_rows * sizeof(float));
 		for (int i = 0; i < coo.num_cols; i++){
 			#ifdef DEBUG
-			x[i] = [i];
+			x[i] = (float)i;
 			#else
 			x[i] = rand() / (RAND_MAX + 1.0);
 			#endif
@@ -200,8 +201,8 @@ int main(int argc, char** argv)
 
 		// now we have to scatter the workload array so each node can create a
 		// buffer for the correct amount of data
-		MPI_Scatter(workload_array_size, 1, MPI_INT, &workload_size, 1, MPI_INT,
-			0, MPI_COMM_WORLD);
+		MPI_Scatter(workload_array_size, 1, MPI_INT, &coo.num_nonzeros, 1, MPI_INT,
+					0, MPI_COMM_WORLD);
 		MPI_Scatterv(coo.rows, workload_array_size, workload_displs, MPI_INT,
 					 coo.rows, coo.num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
 		MPI_Scatterv(coo.cols, workload_array_size, workload_displs, MPI_INT,
@@ -209,18 +210,18 @@ int main(int argc, char** argv)
 		MPI_Scatterv(coo.vals, workload_array_size, vals_displ, MPI_FLOAT,
 					 coo.vals, coo.num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
 		
-		printf("Rank %d got workload size %d\n", rank, workload_size);
+		printf("Rank %d got workload size %d\n", rank, coo.num_nonzeros);
 		free(workload_array_size);
 		free(workload_displs);
 		free(vals_displ);
 	} else{
 		// Recieve workload size
-		MPI_Scatter(NULL, 1, MPI_INT, &workload_size, 1, MPI_INT,
+		MPI_Scatter(NULL, 1, MPI_INT, &coo.num_nonzeros, 1, MPI_INT,
 			0, MPI_COMM_WORLD);
 		// Allocate space for the values
-		coo->rows = (int*)malloc(workload_size * sizeof(int));
-		coo->cols = (int*)malloc(workload_size * sizeof(int));
-		coo->vals = (float*)malloc(workload_size * sizeof(float));
+		coo.rows = (int*)malloc(coo.num_nonzeros * sizeof(int));
+		coo.cols = (int*)malloc(coo.num_nonzeros * sizeof(int));
+		coo.vals = (float*)malloc(coo.num_nonzeros * sizeof(float));
 
 		// Now receive the buffers for this nodes portion of work
 		MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo.rows, coo.num_nonzeros,
@@ -230,16 +231,16 @@ int main(int argc, char** argv)
 		MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, coo.rows, coo.num_nonzeros,
 					 MPI_FLOAT, 0, MPI_COMM_WORLD);	 
 		#ifdef DEBUG
-		printf("Rank %d got workload size %d\n", rank, workload_size);
+		printf("Rank %d got workload size %d\n", rank, coo.num_nonzeros);
 		#endif
 	}
 	// Now send the size for the arrays so that the x and y vecs can be set
-	MPI_Bcast(coo.num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Bcast(coo.num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&coo.num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&coo.num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if (rank != 0){
-		x = (int *)malloc(coo.num_cols * sizeof(int));
-		y = (int *)malloc(coo.num_rows * sizeof(int));
+		x = (float *)malloc(coo.num_cols * sizeof(float));
+		y = (float *)malloc(coo.num_rows * sizeof(float));
 		for (int i = 0; i < coo.num_rows; i++){
 			y[i] = 0;
 		}
@@ -250,7 +251,8 @@ int main(int argc, char** argv)
 	// Each node should now have it's own coo.
 	// Let's try printing it
 	#ifdef DEBUG
-	printf("Rank %d has %d nonzeros from %d to %d", rank, coo.num_nonzeros, coo.vals[0], coo.vals[coo.num_nonzeros - 1]);
+	printf("Rank %d has %d nonzeros from %d to %d\n", rank, coo.num_nonzeros, coo.vals[0], coo.vals[coo.num_nonzeros - 1]);
+	printf("x ranges from %d to %d\n", x[0], x[coo.num_cols - 1]);
 	#endif
 
     /* Benchmarking */
