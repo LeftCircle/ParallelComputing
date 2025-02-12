@@ -9,6 +9,8 @@
 
 
 #include <stdio.h>
+#include <mpi.h>
+
 #include "cmdline.h"
 #include "input.h"
 #include "config.h"
