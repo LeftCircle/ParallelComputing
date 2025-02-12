@@ -10,4 +10,4 @@
 #define MEM_SIZE 2.4e10  
 #define L3CACHE_SIZE 1.2e7
 
-// #define TESTING
+#define TESTING

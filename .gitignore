@@ -1,0 +1,5 @@
+hw_02/spmv-mpi.exe
+*.o
+hw_02/test_x
+hw_02/test_y
+hw_02/test_COO
