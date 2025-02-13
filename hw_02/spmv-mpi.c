@@ -272,6 +272,20 @@ int main(int argc, char** argv)
 
 	#endif
 
+	// Now everyone has their own coo, x, and y
+	// Let's do the spmv
+	double coo_gflops;
+	coo_gflops = benchmark_coo_spmv(&coo, x, y);
+
+	// Now reduce the y arrays to the root node
+	MPI_Reduce(y, y, coo.num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+	#ifdef DEBUG
+	if (rank == 0){
+		printf("y vec = ");
+		print_vecf(y, coo.num_rows);
+	}
+	#endif
     /* Benchmarking */
     //double coo_gflops;
     //coo_gflops = benchmark_coo_spmv(&coo, x, y);
