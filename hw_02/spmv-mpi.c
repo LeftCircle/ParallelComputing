@@ -66,7 +66,8 @@ double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
     timer_start(&t);
     for(int j = 0; j < num_iterations; j++){
 		for (int i = 0; i < num_nonzeros; i++){   
-			y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * 0; // multiply by zero because value is set in warm up ^^
+			// multiply by zero because value is set in warm up ^^
+			y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * 0;
         }
 	}
     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
@@ -76,20 +77,6 @@ double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
     printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
 
     return msec_per_iteration;
-}
-
-double benchmark_coo_spmv_mpi(coo_matrix * coo, float* x, float* y)
-{
-	int num_nonzeros = coo->num_nonzeros;
-
-	// warmup    
-	timer time_one_iteration;
-	timer_start(&time_one_iteration);
-	for (int i = 0; i < num_nonzeros; i++){   
-		y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]];
-	}
-
-	double estimated_time = seconds_elapsed(&time_one_iteration);
 }
 
 void init_matrix_and_xy_vals(coo_matrix * coo, float * x, float * y){

@@ -5,7 +5,7 @@ LDFLAG=-O3
 
 OBJS=spmv-mpi.o mmio.o 
 
-all: spmv-mpi tests.exe run-tests
+all: spmv-mpi tests.exe spmv-omp run-tests
 
 .c.o:
 	${CC} -o $@ -c ${FLAG} $<
@@ -17,6 +17,9 @@ spmv-mpi: ${OBJS}
 tests.exe: tests.o 
 	${CC} ${LDFLAG} -o $@ $^
 
+# spmv-omp compilation
+spmv-omp: spmv-omp.o mmio.o
+	gcc ${LDFLAG} -o $@ $^ -fopenmp
 
 .PHONY:run-tests
 run-tests: tests.exe
