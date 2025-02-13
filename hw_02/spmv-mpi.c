@@ -178,7 +178,7 @@ int main(int argc, char** argv)
 		y = (float *)malloc(coo.num_rows * sizeof(float));
 		for (int i = 0; i < coo.num_cols; i++){
 			#ifdef DEBUG
-			x[i] = (float)i;
+			x[i] = i;
 			#else
 			x[i] = rand() / (RAND_MAX + 1.0);
 			#endif
@@ -186,6 +186,11 @@ int main(int argc, char** argv)
 		for (int i = 0; i < coo.num_rows; i++){
 			y[i] = 0;
 		}
+
+		#ifdef DEBUG
+		printf("Node 0 init x to ");
+		print_vecf(x, coo.num_cols);
+		#endif
 
 		// Now we have to distribute the data. 
 		// Each node will get the entire y array, a full x array that will
@@ -198,11 +203,16 @@ int main(int argc, char** argv)
 		for (int i = 0; i < size; i++){
 			vals_displ[i] = workload_array_size[i] * sizeof(float);
 		}
-
+		#ifdef DEBUG
+		printf("coo.numnonzeros before scatter = %d\n", coo.num_nonzeros);
+		#endif
 		// now we have to scatter the workload array so each node can create a
 		// buffer for the correct amount of data
 		MPI_Scatter(workload_array_size, 1, MPI_INT, &coo.num_nonzeros, 1, MPI_INT,
 					0, MPI_COMM_WORLD);
+		#ifdef DEBUG
+		printf("coo.numnonzeros post scatter = %d\n", coo.num_nonzeros);
+		#endif
 		MPI_Scatterv(coo.rows, workload_array_size, workload_displs, MPI_INT,
 					 coo.rows, coo.num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
 		MPI_Scatterv(coo.cols, workload_array_size, workload_displs, MPI_INT,
@@ -214,6 +224,10 @@ int main(int argc, char** argv)
 		free(workload_array_size);
 		free(workload_displs);
 		free(vals_displ);
+		#ifdef DEBUG
+		printf("x values on node 0 = ");
+		print_vecf(x, coo.num_cols);
+		#endif
 	} else{
 		// Recieve workload size
 		MPI_Scatter(NULL, 1, MPI_INT, &coo.num_nonzeros, 1, MPI_INT,
@@ -276,10 +290,6 @@ int main(int argc, char** argv)
     fclose(fp);
     printf("... done!\n");
 #endif
-
-    //delete_coo_matrix(&coo);
-    //free(x);
-    //free(y);
 	// Now free the stuff
 	free(x);
 	free(y);

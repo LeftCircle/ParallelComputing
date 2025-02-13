@@ -20,3 +20,17 @@ static inline void split_workload(int n, int p, int *workload_array, int *worklo
 		workload_displ[i] = workload_array[i] * sizeof(int);
 	}
 }
+
+static inline void print_veci(int * vec, int size){
+	for (int i = 0; i < size; i++){
+		printf(" %d ", vec[i]);
+	}
+	printf("\n");
+}
+
+static inline void print_vecf(float * vec, int size){
+	for (int i = 0; i < size; i++){
+		printf(" %d ", vec[i]);
+	}
+	printf("\n");
+}
