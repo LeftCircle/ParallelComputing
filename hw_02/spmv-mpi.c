@@ -17,6 +17,7 @@
 #include "timer.h"
 #include "formats.h"
 #include "parallelFuncs.h"
+#include "spmv-tests.h"
 
 #define max(a,b) \
 ({ __typeof__ (a) _a = (a); \
@@ -90,6 +91,19 @@ double benchmark_coo_spmv_mpi(coo_matrix * coo, float* x, float* y)
 	double estimated_time = seconds_elapsed(&time_one_iteration);
 }
 
+void init_matrix_and_xy_vals(coo_matrix * coo, float * x, float * y){
+	srand(13);
+	for (int i = 0; i < coo->num_nonzeros; i++){
+		coo->vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
+	}
+	for(int i = 0; i < coo->num_cols; i++) {
+        x[i] = rand() / (RAND_MAX + 1.0); 
+    }
+    for(int i = 0; i < coo->num_rows; i++){
+        y[i] = 0;
+	}
+}
+
 int main(int argc, char** argv)
 {
 	// Start up MPI
@@ -126,25 +140,10 @@ int main(int argc, char** argv)
 	if (rank == 0){
     	//coo_matrix coo;
     	read_coo_matrix(&coo, mm_filename);
+		x = (float*)malloc(coo.num_cols * sizeof(float));
+		y = (float*)malloc(coo.num_rows * sizeof(float));
+		init_matrix_and_xy_vals(&coo, x, y);
 	
-    	// fill matrix with random values: some matrices have extreme values, 
-    	// which makes correctness testing difficult, especially in single precision
-    	srand(13);
-		for(int i = 0; i < coo.num_nonzeros; i++) {
-			#ifdef DEBUG
-				coo.vals[i] = i;
-			#else
-				coo.vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
-			// coo.vals[i] = 1.0;
-			#endif
-		}
-		
-		printf("\nfile=%s rows=%d cols=%d nonzeros=%d\n", mm_filename, coo.num_rows, coo.num_cols, coo.num_nonzeros);
-		//printf("nonzeros range from %f to %f\n", coo.vals[0], coo.vals[coo.num_nonzeros - 1]);
-		printf("Node zero init nonzeros to ");
-		print_vecf(coo.vals, coo.num_nonzeros);
-		fflush(stdout);
-
 		#ifdef TESTING
 		//print in COO format
 			if (rank == 0){
@@ -174,26 +173,6 @@ int main(int argc, char** argv)
 			}
 		#endif 
 
-		// Start by just scattering the data then printing it
-		// rank 0 needs to let each node know how much data they will get
-		x = (float *)malloc(coo.num_cols * sizeof(float));
-		y = (float *)malloc(coo.num_rows * sizeof(float));
-		for (int i = 0; i < coo.num_cols; i++){
-			#ifdef DEBUG
-			x[i] = i;
-			#else
-			x[i] = rand() / (RAND_MAX + 1.0);
-			#endif
-		}
-		for (int i = 0; i < coo.num_rows; i++){
-			y[i] = 0;
-		}
-
-		#ifdef DEBUG
-		printf("Node 0 init x to ");
-		print_vecf(x, coo.num_cols);
-		#endif
-
 		// Now we have to distribute the data. 
 		// Each node will get the entire y array, a full x array that will
 		// later be summed up, and a portion of the row/column/value from the
@@ -201,20 +180,10 @@ int main(int argc, char** argv)
 		int *workload_array_size = (int *)malloc(size * sizeof(int));
 		int *workload_displsi = (int*)malloc(size * sizeof(int));
 		split_workload(coo.num_nonzeros, size, workload_array_size, workload_displsi);
-		#ifdef DEBUG
-		printf("\n");
-		printf("coo.numnonzeros before scatter = %d\n", coo.num_nonzeros);
-		printf("displi = ");
-		print_veci(workload_displsi, coo.num_nonzeros);
-		printf("\n");
-		#endif
-		// now we have to scatter the workload array so each node can create a
-		// buffer for the correct amount of data
+		
 		MPI_Scatter(workload_array_size, 1, MPI_INT, &coo.num_nonzeros, 1, MPI_INT,
 					0, MPI_COMM_WORLD);
-		#ifdef DEBUG
-		printf("coo.numnonzeros post scatter = %d\n", coo.num_nonzeros);
-		#endif
+		
 		MPI_Scatterv(coo.rows, workload_array_size, workload_displsi, MPI_INT,
 					 coo.rows, coo.num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
 		MPI_Scatterv(coo.cols, workload_array_size, workload_displsi, MPI_INT,
@@ -269,7 +238,6 @@ int main(int argc, char** argv)
 	printf("Rank %d has %d nonzeros from %f to %f\n", rank, coo.num_nonzeros, coo.vals[0], coo.vals[coo.num_nonzeros - 1]);
 	printf("Rank %d has nonzeros ");
 	//printf("x ranges from %f to %f\n", x[0], x[coo.num_cols - 1]);
-
 	#endif
 
 	// Now everyone has their own coo, x, and y
@@ -278,35 +246,49 @@ int main(int argc, char** argv)
 	coo_gflops = benchmark_coo_spmv(&coo, x, y);
 
 	// Now reduce the y arrays to the root node
-	MPI_Reduce(y, y, coo.num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+	float * y_parallel = (float*)malloc(coo.num_rows * sizeof(float));
+	MPI_Reduce(y, y_parallel, coo.num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 	#ifdef DEBUG
 	if (rank == 0){
 		printf("y vec = ");
-		print_vecf(y, coo.num_rows);
+		print_vecf(y_parallel, coo.num_rows);
 	}
 	#endif
-    /* Benchmarking */
-    //double coo_gflops;
-    //coo_gflops = benchmark_coo_spmv(&coo, x, y);
-
+   
     /* Test correctnesss */
-#ifdef TESTING
-    printf("Writing x and y vectors ...");
-    fp = fopen("test_x", "w");
-    for (int i=0; i<coo.num_cols; i++)
-    {
-      fprintf(fp, "%f\n", x[i]);
-    }
-    fclose(fp);
-    fp = fopen("test_y", "w");
-    for (int i=0; i<coo.num_rows; i++)
-    {
-      fprintf(fp, "%f\n", y[i]);
-    }
-    fclose(fp);
-    printf("... done!\n");
-#endif
+	#ifdef TESTING
+		if (rank == 0){
+			printf("Writing x and y vectors ...");
+			FILE *fp = fopen("test_x", "w");
+			for (int i=0; i<coo.num_cols; i++)
+			{
+			fprintf(fp, "%f\n", x[i]);
+			}
+			fclose(fp);
+			fp = fopen("test_y", "w");
+			for (int i=0; i<coo.num_rows; i++)
+			{
+			fprintf(fp, "%f\n", y_parallel[i]);
+			}
+			fclose(fp);
+			printf("... done!\n");
+		}
+	#endif
+	#ifdef SEQUENTIAL_CHECK
+		// Test against sequential
+		if (rank == 0){
+			coo_matrix seq_coo;
+			read_coo_matrix(&seq_coo, mm_filename);
+			float * seq_x = (float*)malloc(seq_coo.num_cols * sizeof(float));
+			float * seq_y = (float*)malloc(seq_coo.num_rows * sizeof(float));
+			init_matrix_and_xy_vals(&seq_coo, seq_x, seq_y);
+			double coo_gflops_s = benchmark_coo_spmv(&seq_coo, seq_x, seq_y);
+			test_spmv_accuracy(y_parallel, seq_y, seq_coo.num_rows, 0.01);
+		}
+	#endif
+	
+
 	// Now free the stuff
 	free(x);
 	free(y);

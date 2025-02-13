@@ -11,4 +11,5 @@
 #define L3CACHE_SIZE 1.2e7
 
 //#define TESTING
-#define DEBUG
+//#define DEBUG
+#define SEQUENTIAL_CHECK
