@@ -11,16 +11,22 @@
 // Given n elements and p processors, each processor should get n/p elements
 // and the eccess elements should be distributed among the starting processors
 void test_split_workload(){
+	// Testing using floats
 	int n = 13;
 	int p = 3;
 	
 	int *workload_array = (int *)malloc(p * sizeof(int));
-	split_workload(n, p, workload_array);
+	int *workload_offset = (int*)malloc(p * sizeof(int));
+	split_workload(n, p, workload_array, workload_offset);
 
 	assert(workload_array[0] == 5);
 	assert(workload_array[1] == 4);
 	assert(workload_array[2] == 4);
+	assert(workload_offset[0] == 0);
+	assert(workload_offset[1] == 5);
+	assert(workload_offset[2] == 9);
 	free(workload_array);
+	free(workload_offset);
 	printf("test_split_workload passed\n");
 }
 
