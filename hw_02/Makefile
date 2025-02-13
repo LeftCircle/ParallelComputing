@@ -1,17 +1,18 @@
-CC=mpicc
+CC=gcc
 #FLAG=-g -Wall
-FLAG=-O3 -std=c99 -I./include/ -Wno-unused-result -Wno-write-strings
-LDFLAG=-O3
+FLAG=-O3 -std=c99 -I./include/ -Wno-unused-result -Wno-write-strings -fopenmp
+LDFLAG=-O3 -fopenmp
 
 OBJS=spmv-mpi.o mmio.o 
 
-all: spmv-mpi tests.exe spmv-omp run-tests
+#all: spmv-mpi tests.exe spmv-omp run-tests
+all: spmv-omp tests.exe run-tests
 
 .c.o:
 	${CC} -o $@ -c ${FLAG} $<
 
-spmv-mpi: ${OBJS}
-	${CC}  ${LDFLAG} -o $@ $^
+#spmv-mpi: ${OBJS}
+#	${CC}  ${LDFLAG} -o $@ $^
 
 # Tests compilation
 tests.exe: tests.o 
@@ -19,7 +20,7 @@ tests.exe: tests.o
 
 # spmv-omp compilation
 spmv-omp: spmv-omp.o mmio.o
-	gcc ${LDFLAG} -o $@ $^ -fopenmp
+	gcc ${LDFLAG} -o $@ $^
 
 .PHONY:run-tests
 run-tests: tests.exe

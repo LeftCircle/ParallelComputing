@@ -17,6 +17,7 @@
 #include "timer.h"
 #include "formats.h"
 #include "parallelFuncs.h"
+#include "spmv-tests.h"
 
 #define max(a,b) \
 ({ __typeof__ (a) _a = (a); \
@@ -76,43 +77,100 @@ double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
     return msec_per_iteration;
 }
 
+void coo_smpv_omp_equal(coo_matrix * coo, float * x, float * y,
+					    float**y_thread, int num_threads, float mod){
+	int num_nonzeros = coo->num_nonzeros;
+	#pragma omp parallel shared(y, x, coo, num_nonzeros, num_threads, mod)
+	{
+		int tid = omp_get_thread_num();
+		//printf("Thread %d starting\n", tid); fflush(stdout);
+
+		#pragma omp for
+		for (int i = 0; i < num_nonzeros; i++){   
+			y_thread[tid][coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * mod;
+		}
+		//printf("Thread %d finished main loop\n", tid);
+
+		// Wait for all threads to finish the main loop
+		#pragma omp barrier
+
+		// Reduce the results to the main y array
+		#pragma omp for
+		for (int i = 0; i < coo->num_rows; i++){
+			for (int j = 0; j < num_threads; j++){
+				y[i] += y_thread[j][i] * mod;
+			}
+		}
+		//printf("Thread %d finished reduction\n", tid);
+	}
+}
+
+// void coo_smpv_omp_split_by_row(coo_matrix * coo, float * x, float * y, float mod){
+// 	#pragma omp parallel for shared(y, x, coo) reduction(+:y)
+// 	int num_nonzeros = coo->num_nonzeros;
+// 	for (int i = 0; i < num_nonzeros; i++){   
+// 		y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * mod;
+// 	}
+// }
+
 double benchmark_coo_smpv_omp(coo_matrix * coo, float* x, float* y)
 {
 	int num_nonzeros = coo->num_nonzeros;
-	int num_rows = coo->num_rows;
-
-	// Get number of threads
-	int num_threads = omp_get_max_threads();
 
 	// the y value is accessed by each thread, so it's better to 
 	// give each thread their own and sum them in the end just like 
 	// with MPI
-	float **y_thread = (float **)malloc(num_threads * sizeof(float *));
+	//float **y_thread = (float **)malloc(num_threads * sizeof(float *));
 	
-	// Now the parallel part
-	#pragma omp parallal
-	{
-		int tid = omp_get_thread_num();
-		// calloc to init to 0
-		y_thread[tid] = (float *)calloc(num_rows, sizeof(float));
-		#pragma omp for
-		// benchmark the spmv
-		double coo_gflops;
-		coo_gflops = benchmark_coo_spmv(&coo, x, y_thread[tid]);
-	}
+	int num_threads = omp_get_max_threads();
+	omp_set_num_threads(num_threads);
 
-	#pragma omp parallel for
-	for (int i = 0; i < num_rows; i++){
-		for (int j = 0; j < num_threads; j++){
-			y[i] += y_thread[j][i];
+	float **y_thread = (float **)malloc(num_threads * sizeof(float *));
+	for (int i = 0; i < num_threads; i++){
+		y_thread[i] = (float*)calloc(coo->num_rows, sizeof(float));
+		if (y_thread[i] == NULL){
+			printf("Error allocating memory for y_thread\n");
+			exit(1);
 		}
 	}
-	// Free the local y arrays
-	for (int i = 0; i < num_threads; i++){
+
+	timer time_one_iteration;
+    timer_start(&time_one_iteration);
+	
+	// Now the parallel part
+	coo_smpv_omp_equal(coo, x, y, y_thread, num_threads, 1);
+	double estimated_time = seconds_elapsed(&time_one_iteration); 
+	
+	// determine # of seconds dynamically
+	int num_iterations;
+	num_iterations = MAX_ITER;
+
+	if (estimated_time == 0)
+		num_iterations = MAX_ITER;
+	else {
+		num_iterations = min(MAX_ITER, max(MIN_ITER, (int) (TIME_LIMIT / estimated_time)) ); 
+	}
+	printf("\tPerforming %d iterations\n", num_iterations);
+
+	// time several SpMV iterations
+    timer t;
+    timer_start(&t);
+    for(int j = 0; j < num_iterations; j++){
+		coo_smpv_omp_equal(coo, x, y, y_thread, num_threads, 0);
+	}
+    double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
+    double sec_per_iteration = msec_per_iteration / 1000.0;
+    double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
+    double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
+    printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
+
+	// cleanup
+	for(int i = 0; i < num_threads; i++){
 		free(y_thread[i]);
 	}
 	free(y_thread);
-	return 0;
+
+    return msec_per_iteration;
 }
 
 void init_matrix_and_xy_vals(coo_matrix * coo, float * x, float * y){
@@ -130,6 +188,20 @@ void init_matrix_and_xy_vals(coo_matrix * coo, float * x, float * y){
 
 int main(int argc, char** argv)
 {
+	int max_threads = omp_get_max_threads();
+	printf("Max threads: %d\n", max_threads);
+	omp_set_num_threads(max_threads);
+	printf("Testing OpenMP setup:\n");
+    #pragma omp parallel num_threads(max_threads)
+    {
+        #pragma omp single
+        printf("Number of threads: %d\n", omp_get_num_threads());
+        
+		#pragma omp critical
+        printf("Thread %d of %d checking in\n", 
+               omp_get_thread_num(), 
+               omp_get_num_threads());
+    }
 	if (get_arg(argc, argv, "help") != NULL){
 		usage(argc, argv);
         return 0;
@@ -159,6 +231,7 @@ int main(int argc, char** argv)
 	
 	double coo_gflops;
 	coo_gflops = benchmark_coo_smpv_omp(&coo, x, y);
+	printf("COO GFLOPS for OpenMP: %f\n", coo_gflops);
 
     /* Test correctnesss */
 	#ifdef TESTING
@@ -186,6 +259,7 @@ int main(int argc, char** argv)
 		float * seq_y = (float*)malloc(seq_coo.num_rows * sizeof(float));
 		init_matrix_and_xy_vals(&seq_coo, seq_x, seq_y);
 		double coo_gflops_s = benchmark_coo_spmv(&seq_coo, seq_x, seq_y);
+		printf("COO GFLOPS for Sequential: %f\n", coo_gflops_s);
 		test_spmv_accuracy(y, seq_y, seq_coo.num_rows, 0.01);
 	#endif
 	// Now free the stuff
