@@ -64,10 +64,11 @@ double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
     // time several SpMV iterations
     timer t;
     timer_start(&t);
-    for(int j = 0; j < num_iterations; j++)
-        for (int i = 0; i < num_nonzeros; i++){   
-            y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]];
+    for(int j = 0; j < num_iterations; j++){
+		for (int i = 0; i < num_nonzeros; i++){   
+			y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * 0; // multiply by zero because value is set in warm up ^^
         }
+	}
     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
     double sec_per_iteration = msec_per_iteration / 1000.0;
     double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
