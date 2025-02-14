@@ -77,33 +77,42 @@ double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
     return msec_per_iteration;
 }
 
-void coo_smpv_omp_equal(coo_matrix * coo, float * x, float * y,
+// split num_nonzeros between threads -> would not have parallel for
+//
+// Or move the int tid into the omp parallel for and remove the first #pragma omp parallel
+void coo_spmv_omp(coo_matrix * coo, float * x, float * y,
 					    float**y_thread, int num_threads, float mod){
 	int num_nonzeros = coo->num_nonzeros;
-	#pragma omp parallel shared(y, x, coo, num_nonzeros, num_threads, mod)
-	{
+	#pragma omp parallel for
+	for (int i = 0; i < num_nonzeros; i++){   
 		int tid = omp_get_thread_num();
-		//printf("Thread %d starting\n", tid); fflush(stdout);
-
-		#pragma omp for
-		for (int i = 0; i < num_nonzeros; i++){   
-			y_thread[tid][coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * mod;
+		y_thread[tid][coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * mod;
+	}
+	// Reduce the results to the main y array
+	// This reduction step is slow
+	#pragma omp parallel for
+	for (int i = 0; i < coo->num_rows; i++){
+		for (int j = 0; j < num_threads; j++){
+			y[i] += y_thread[j][i] * mod;
 		}
-		//printf("Thread %d finished main loop\n", tid);
-
-		// Wait for all threads to finish the main loop
-		#pragma omp barrier
-
-		// Reduce the results to the main y array
-		#pragma omp for
-		for (int i = 0; i < coo->num_rows; i++){
-			for (int j = 0; j < num_threads; j++){
-				y[i] += y_thread[j][i] * mod;
-			}
-		}
-		//printf("Thread %d finished reduction\n", tid);
 	}
 }
+
+void coo_spmv_omp_reduction(coo_matrix * coo, float * x, float * y, float mod){
+	#pragma omp parallel for reduction(+:y[:coo->num_rows])
+	for (int i = 0; i < coo->num_nonzeros; i++){   
+		y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * mod;
+	}
+}
+
+// // Could try using #pragma omp critical on the y addition to see if it is faster
+// void coo_smpv_omp_single_y(coo_matrix * coo, float * x, float * y, float mod){
+// 	int num_nonzeros = coo->num_nonzeros;
+// 	#pragma omp parallel for shared(y, x, coo) reduction(+:y)
+// 	for (int i = 0; i < num_nonzeros; i++){   
+// 		y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]] * mod;
+// 	}
+// }
 
 // void coo_smpv_omp_split_by_row(coo_matrix * coo, float * x, float * y, float mod){
 // 	#pragma omp parallel for shared(y, x, coo) reduction(+:y)
@@ -138,7 +147,8 @@ double benchmark_coo_smpv_omp(coo_matrix * coo, float* x, float* y)
     timer_start(&time_one_iteration);
 	
 	// Now the parallel part
-	coo_smpv_omp_equal(coo, x, y, y_thread, num_threads, 1);
+	coo_spmv_omp_equal(coo, x, y, y_thread, num_threads, 1);
+	//coo_smpv_omp_single_y(coo, x, y, 1);
 	double estimated_time = seconds_elapsed(&time_one_iteration); 
 	
 	// determine # of seconds dynamically
@@ -156,7 +166,8 @@ double benchmark_coo_smpv_omp(coo_matrix * coo, float* x, float* y)
     timer t;
     timer_start(&t);
     for(int j = 0; j < num_iterations; j++){
-		coo_smpv_omp_equal(coo, x, y, y_thread, num_threads, 0);
+		coo_spmv_omp_equal(coo, x, y, y_thread, num_threads, 0);
+		//coo_smpv_omp_single_y(coo, x, y, 0);
 	}
     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
     double sec_per_iteration = msec_per_iteration / 1000.0;
