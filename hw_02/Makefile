@@ -1,4 +1,5 @@
 CC=gcc
+#CC=mpicc
 #FLAG=-g -Wall
 FLAG=-O3 -std=c99 -I./include/ -Wno-unused-result -Wno-write-strings -fopenmp
 LDFLAG=-O3 -fopenmp
@@ -6,13 +7,13 @@ LDFLAG=-O3 -fopenmp
 OBJS=spmv-mpi.o mmio.o 
 
 #all: spmv-mpi tests.exe spmv-omp run-tests
-all: spmv-omp tests.exe run-tests
+all: spmv-mpi spmv-omp tests.exe run-tests
 
 .c.o:
 	${CC} -o $@ -c ${FLAG} $<
 
-#spmv-mpi: ${OBJS}
-#	${CC}  ${LDFLAG} -o $@ $^
+spmv-mpi: ${OBJS}
+	mpicc  ${LDFLAG} -o $@ $^
 
 # Tests compilation
 tests.exe: tests.o 
