@@ -147,7 +147,7 @@ double benchmark_coo_smpv_omp(coo_matrix * coo, float* x, float* y)
     timer_start(&time_one_iteration);
 	
 	// Now the parallel part
-	coo_spmv_omp(coo, x, y, y_thread, num_threads, 1);
+	coo_spmv_omp_reduction(coo, x, y, 1);
 	//coo_smpv_omp_single_y(coo, x, y, 1);
 	double estimated_time = seconds_elapsed(&time_one_iteration); 
 	
@@ -166,7 +166,7 @@ double benchmark_coo_smpv_omp(coo_matrix * coo, float* x, float* y)
     timer t;
     timer_start(&t);
     for(int j = 0; j < num_iterations; j++){
-		coo_spmv_omp(coo, x, y, y_thread, num_threads, 0);
+		coo_spmv_omp_reduction(coo, x, y, 0);
 	}
     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
     double sec_per_iteration = msec_per_iteration / 1000.0;
