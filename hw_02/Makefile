@@ -1,4 +1,4 @@
-CC=gcc
+CC=mpicc
 #CC=mpicc
 #FLAG=-g -Wall
 FLAG=-O3 -std=c99 -I./include/ -Wno-unused-result -Wno-write-strings -fopenmp

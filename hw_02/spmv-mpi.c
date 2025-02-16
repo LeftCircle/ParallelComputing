@@ -29,6 +29,8 @@
    __typeof__ (b) _b = (b); \
  _a < _b ? _a : _b; })
 
+int rank, size;
+
 void usage(int argc, char** argv)
 {
     printf("Usage: %s [my_matrix.mtx]\n", argv[0]);
@@ -99,11 +101,11 @@ void init_matrix_and_xy_vals(coo_matrix * coo, float * x, float * y){
 	}
 }
 
-void _rank_zero_startup(coo_matrix * coo, float *x, float *y const char * mm_filename){
+void _rank_zero_startup(coo_matrix * coo, float *x, float *y, const char * mm_filename){
 	//coo_matrix coo;
 	read_coo_matrix(coo, mm_filename);
-	x = (float*)malloc(coo.num_cols * sizeof(float));
-	y = (float*)malloc(coo.num_rows * sizeof(float));
+	x = (float*)malloc(coo->num_cols * sizeof(float));
+	y = (float*)malloc(coo->num_rows * sizeof(float));
 	init_matrix_and_xy_vals(coo, x, y);
 }
 
@@ -121,12 +123,12 @@ void _rank_zero_data_scatter(coo_matrix *coo, float *x, float *y){
 	MPI_Scatter(workload_array_size, 1, MPI_INT, &coo->num_nonzeros, 1, MPI_INT,
 				0, MPI_COMM_WORLD);
 	
-	MPI_Scatterv(coo->rows, workload_array_size, workload_displsi, MPI_INT,
-				 coo->rows, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(coo->cols, workload_array_size, workload_displsi, MPI_INT,
-				 coo->cols, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(coo->vals, workload_array_size, workload_displsi, MPI_FLOAT,
-				 coo->vals, coo->num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(&coo->rows, workload_array_size, workload_displsi, MPI_INT,
+				 &coo->rows, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(&coo->cols, workload_array_size, workload_displsi, MPI_INT,
+				 &coo->cols, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(&coo->vals, workload_array_size, workload_displsi, MPI_FLOAT,
+				 &coo->vals, coo->num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
 	
 	printf("Rank %d got workload size %d\n", rank, coo->num_nonzeros);
 	free(workload_array_size);
@@ -139,7 +141,7 @@ void _rank_zero_data_scatter(coo_matrix *coo, float *x, float *y){
 
 void _other_rank_data_scatter(coo_matrix * coo, float *x, float *y){
 	// Recieve workload size
-	MPI_Scatter(NULL, 1, MPI_INT, coo->num_nonzeros, 1, MPI_INT,
+	MPI_Scatter(NULL, 1, MPI_INT, &coo->num_nonzeros, 1, MPI_INT,
 		0, MPI_COMM_WORLD);
 	// Allocate space for the values
 	coo->rows = (int*)malloc(coo->num_nonzeros * sizeof(int));
@@ -147,11 +149,11 @@ void _other_rank_data_scatter(coo_matrix * coo, float *x, float *y){
 	coo->vals = (float*)malloc(coo->num_nonzeros * sizeof(float));
 
 	// Now receive the buffers for this nodes portion of work
-	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo->rows, coo->num_nonzeros,
+	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, &coo->rows, coo->num_nonzeros,
 				 MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo->cols, coo->num_nonzeros,
+	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, &coo->cols, coo->num_nonzeros,
 				  MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, coo->vals, coo->num_nonzeros,
+	MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, &coo->vals, coo->num_nonzeros,
 				 MPI_FLOAT, 0, MPI_COMM_WORLD);	 
 	#ifdef DEBUG
 	printf("Rank %d got workload size %d\n", rank, coo.num_nonzeros);
@@ -161,9 +163,9 @@ void _other_rank_data_scatter(coo_matrix * coo, float *x, float *y){
 
 void _split_vals_between_nodes(coo_matrix * coo, float * x, float * y){
 	if (rank == 0){
-    	_rank_zero_startup(coo, x, y);
+    	_rank_zero_data_scatter(coo, x, y);
 	} else{
-		_other_rank_startup(coo, x, y);
+		_other_rank_data_scatter(coo, x, y);
 	}
 }
 
@@ -173,34 +175,44 @@ void _init_x_and_y_for_nonzero_nodes(coo_matrix * coo, float * x, float * y){
 }
 
 void _broadcast_data_for_x_and_y(coo_matrix * coo, float * x, float * y){
-	MPI_Bcast(coo->num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Bcast(coo->num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&coo->num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&coo->num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if (rank != 0){
 		_init_x_and_y_for_nonzero_nodes(coo, x, y);
 	}
 	// Now we can send the x array with the data in it
-	MPI_Bcast(x, coo.num_cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(x, coo->num_cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
 }
 
 void _coo_spmv_mpi(coo_matrix * coo, float * x, float * y, float * y_parallel){
-	_split_vals_between_nodes(&coo, x, y);
-	_broadcast_data_for_x_and_y(&coo, x, y);
-	coo_spmv(&coo, x, y);
+	_split_vals_between_nodes(coo, x, y);
+	_broadcast_data_for_x_and_y(coo, x, y);
+	coo_spmv(coo, x, y);
 
 	if (rank == 0){
 		// Allocate space for the y array that will be reduced into
-		y_parallel = (float*)malloc(coo.num_rows * sizeof(float));
+		y_parallel = (float*)malloc(coo->num_rows * sizeof(float));
 	} else{
 		y_parallel = NULL;
 	}
-	MPI_Reduce(y, y_parallel, coo.num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+}
+
+int get_n_iterations(int estimated_time){
+	int num_iterations;
+	if (estimated_time == 0)
+        num_iterations = MAX_ITER;
+    else {
+        num_iterations = min(MAX_ITER, max(MIN_ITER, (int) (TIME_LIMIT / estimated_time)) ); 
+    }
+	return num_iterations;
 }
 
 int main(int argc, char** argv)
 {
 	// Start up MPI
-	int rank, size;
+	
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -231,9 +243,37 @@ int main(int argc, char** argv)
 	float * y;
 	float * y_parallel;
 
-	_rank_zero_startup(&coo, x, y, mm_filename);
+	if (rank == 0){
+		_rank_zero_startup(&coo, x, y, mm_filename);
+	}
 	
+	// warm up
+	int num_iterations;
+	timer time_one_iteration;
+	if (rank == 0){
+		timer_start(&time_one_iteration);
+	}
 	_coo_spmv_mpi(&coo, x, y, y_parallel);
+	if (rank == 0){
+		double estimated_time = seconds_elapsed(&time_one_iteration);
+		num_iterations = get_n_iterations(estimated_time);
+	}
+
+	MPI_Bcast(&num_iterations, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	// now average iterations
+	timer t;
+	timer_start(&t);
+	for(int j = 0; j < num_iterations; j++){
+		_coo_spmv_mpi(&coo, x, y, y_parallel);
+	}
+	if (rank == 0){
+		double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
+		double sec_per_iteration = msec_per_iteration / 1000.0;
+		double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo.num_nonzeros / sec_per_iteration) / 1e9;
+		double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(&coo) / sec_per_iteration) / 1e9;
+		printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
+	}
 
 	#ifdef DEBUG
 	if (rank == 0){
@@ -282,6 +322,12 @@ int main(int argc, char** argv)
 	MPI_Finalize();
     return 0;
 }
+
+
+
+
+
+
 
 
 
