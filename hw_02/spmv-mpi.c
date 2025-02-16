@@ -101,12 +101,12 @@ void init_matrix_and_xy_vals(coo_matrix * coo, float * x, float * y){
 	}
 }
 
-void _rank_zero_startup(coo_matrix * coo, float *x, float *y, const char * mm_filename){
+void _rank_zero_startup(coo_matrix * coo, float **x, float **y, const char * mm_filename){
 	//coo_matrix coo;
 	read_coo_matrix(coo, mm_filename);
-	x = (float*)malloc(coo->num_cols * sizeof(float));
-	y = (float*)malloc(coo->num_rows * sizeof(float));
-	init_matrix_and_xy_vals(coo, x, y);
+	*x = (float*)malloc(coo->num_cols * sizeof(float));
+	*y = (float*)malloc(coo->num_rows * sizeof(float));
+	init_matrix_and_xy_vals(coo, *x, *y);
 }
 
 void _rank_zero_data_scatter(coo_matrix *coo, float *x, float *y){
@@ -123,12 +123,12 @@ void _rank_zero_data_scatter(coo_matrix *coo, float *x, float *y){
 	MPI_Scatter(workload_array_size, 1, MPI_INT, &coo->num_nonzeros, 1, MPI_INT,
 				0, MPI_COMM_WORLD);
 	
-	MPI_Scatterv(&coo->rows, workload_array_size, workload_displsi, MPI_INT,
-				 &coo->rows, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(&coo->cols, workload_array_size, workload_displsi, MPI_INT,
-				 &coo->cols, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(&coo->vals, workload_array_size, workload_displsi, MPI_FLOAT,
-				 &coo->vals, coo->num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(coo->rows, workload_array_size, workload_displsi, MPI_INT,
+				 coo->rows, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(coo->cols, workload_array_size, workload_displsi, MPI_INT,
+				 coo->cols, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(coo->vals, workload_array_size, workload_displsi, MPI_FLOAT,
+				 coo->vals, coo->num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
 	
 	printf("Rank %d got workload size %d\n", rank, coo->num_nonzeros);
 	free(workload_array_size);
@@ -149,11 +149,11 @@ void _other_rank_data_scatter(coo_matrix * coo, float *x, float *y){
 	coo->vals = (float*)malloc(coo->num_nonzeros * sizeof(float));
 
 	// Now receive the buffers for this nodes portion of work
-	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, &coo->rows, coo->num_nonzeros,
+	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo->rows, coo->num_nonzeros,
 				 MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, &coo->cols, coo->num_nonzeros,
+	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo->cols, coo->num_nonzeros,
 				  MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, &coo->vals, coo->num_nonzeros,
+	MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, coo->vals, coo->num_nonzeros,
 				 MPI_FLOAT, 0, MPI_COMM_WORLD);	 
 	#ifdef DEBUG
 	printf("Rank %d got workload size %d\n", rank, coo.num_nonzeros);
@@ -244,7 +244,7 @@ int main(int argc, char** argv)
 	float * y_parallel;
 
 	if (rank == 0){
-		_rank_zero_startup(&coo, x, y, mm_filename);
+		_rank_zero_startup(&coo, &x, &y, mm_filename);
 	}
 	
 	// warm up
