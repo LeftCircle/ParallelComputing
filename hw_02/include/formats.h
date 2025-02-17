@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef FORMATS_H
+#define FORMATS_H
 
 // COOrdinate matrix (aka IJV or Triplet format)
 typedef struct coo_matrix
@@ -11,11 +12,11 @@ typedef struct coo_matrix
 } coo_matrix;
 
 
-void delete_coo_matrix(coo_matrix* coo){
+static inline void delete_coo_matrix(coo_matrix* coo){
     free(coo->rows);   free(coo->cols);   free(coo->vals);
 }
 
-size_t bytes_per_coo_spmv(const coo_matrix * coo)
+static inline size_t bytes_per_coo_spmv(const coo_matrix * coo)
 {
     size_t bytes = 0;
     bytes += 2*sizeof(int) * coo->num_nonzeros; // row and column indices
@@ -33,3 +34,4 @@ size_t bytes_per_coo_spmv(const coo_matrix * coo)
     return bytes;
 }
 
+#endif

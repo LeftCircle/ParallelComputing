@@ -8,56 +8,8 @@
 // https://github.ncsu.edu/jli256/CSC548/tree/main/Assignments/SpMV
 
 
-#include <stdio.h>
-#include <mpi.h>
+#include "spmv-mpi.h"
 
-#include "cmdline.h"
-#include "input.h"
-#include "config.h"
-#include "timer.h"
-#include "formats.h"
-#include "parallelFuncs.h"
-#include "spmv-tests.h"
-#include "spmv.h"
-
-#define max(a,b) \
-({ __typeof__ (a) _a = (a); \
-   __typeof__ (b) _b = (b); \
- _a > _b ? _a : _b; })
-
-#define min(a,b) \
-({ __typeof__ (a) _a = (a); \
-   __typeof__ (b) _b = (b); \
- _a < _b ? _a : _b; })
-
-int rank, size;
-
-void usage(int argc, char** argv)
-{
-    printf("Usage: %s [my_matrix.mtx]\n", argv[0]);
-    printf("Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"); 
-}
-
-
-void coo_spmv(coo_matrix* coo, float* x, float* y){
-	int num_nonzeros = coo->num_nonzeros;
-	for (int i = 0; i < num_nonzeros; i++){   
-		y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]];
-	}
-}
-
-void init_matrix_and_xy_vals(coo_matrix * coo, float *x, float *y){
-	srand(13);
-	for (int i = 0; i < coo->num_nonzeros; i++){
-		coo->vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
-	}
-	for(int i = 0; i < coo->num_cols; i++) {
-        x[i] = rand() / (RAND_MAX + 1.0); 
-    }
-    for(int i = 0; i < coo->num_rows; i++){
-        y[i] = 0;
-	}
-}
 
 void _rank_zero_startup(coo_matrix * coo, float **x, float **y, const char * mm_filename){
 	//coo_matrix coo;
@@ -117,25 +69,25 @@ void _split_vals_between_nodes(coo_matrix * coo){
 	}
 }
 
-void _init_x_and_y_for_nonzero_nodes(coo_matrix * coo, float **x, float **y){
+void _init_x_and_y_for_nonzero_nodes(coo_matrix *coo, float **x, float **y){
 	*x = (float *)malloc(coo->num_cols * sizeof(float));
 	*y = (float *)calloc(coo->num_rows, sizeof(float));
 }
 
-void _broadcast_data_for_x_and_y(coo_matrix * coo, float **x, float **y){
+void _broadcast_data_for_x_and_y(coo_matrix *coo, float **x, float **y){
 	MPI_Bcast(&coo->num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&coo->num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if (rank != 0){
-		_init_x_and_y_for_nonzero_nodes(coo, *x, *y);
+		_init_x_and_y_for_nonzero_nodes(coo, x, y);
 	}
 	// Now we can send the x array with the data in it
 	MPI_Bcast(*x, coo->num_cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
 }
 
-void _coo_spmv_mpi(coo_matrix * coo, float * x, float * y, float * y_parallel){
+void _coo_spmv_mpi(coo_matrix *coo, float *x, float *y, float * y_parallel){
 	_split_vals_between_nodes(coo);
-	_broadcast_data_for_x_and_y(coo, *x, *y);
+	_broadcast_data_for_x_and_y(coo, &x, &y);
 	coo_spmv(coo, x, y);
 
 	if (rank == 0){
@@ -145,16 +97,6 @@ void _coo_spmv_mpi(coo_matrix * coo, float * x, float * y, float * y_parallel){
 		y_parallel = NULL;
 	}
 	MPI_Reduce(y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-}
-
-int get_n_iterations(int estimated_time){
-	int num_iterations;
-	if (estimated_time == 0)
-        num_iterations = MAX_ITER;
-    else {
-        num_iterations = min(MAX_ITER, max(MIN_ITER, (int) (TIME_LIMIT / estimated_time)) ); 
-    }
-	return num_iterations;
 }
 
 int main(int argc, char** argv)

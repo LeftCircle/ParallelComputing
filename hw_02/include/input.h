@@ -1,4 +1,5 @@
-#pragma once
+#ifndef INPUT_H
+#define INPUT_H
 
 #include <stdio.h>
 #include <assert.h>
@@ -7,7 +8,7 @@
 #include "mmio.h"
 #include "../config.h"
 
-static void swap_nnzs(coo_matrix *coo, int ind1, int ind2) 
+ inline inline void swap_nnzs(coo_matrix *coo, int ind1, int ind2) 
 {
     int eleind1;
     eleind1 = coo->rows[ind1];
@@ -21,7 +22,7 @@ static void swap_nnzs(coo_matrix *coo, int ind1, int ind2)
     coo->vals[ind2] = val1;
 }
 
-static int cmp_indices(coo_matrix *coo, int loc1, int loc2)
+static inline int cmp_indices(coo_matrix *coo, int loc1, int loc2)
 {
     int eleind1 = coo->rows[loc1];
     int eleind2 = coo->rows[loc2];
@@ -34,7 +35,7 @@ static int cmp_indices(coo_matrix *coo, int loc1, int loc2)
 }
 
 
-static void quicksort_coo(coo_matrix *coo, int l, int r)
+static inline void quicksort_coo(coo_matrix *coo, int l, int r)
 {
     int i, j, p;
     if(r-l < 2) {
@@ -62,13 +63,13 @@ static void quicksort_coo(coo_matrix *coo, int l, int r)
     quicksort_coo(coo, i, r);
 }
 
-void sort_coo(coo_matrix *coo) 
+static inline void sort_coo(coo_matrix *coo) 
 {
     quicksort_coo(coo, 0, coo->num_nonzeros);
 }
 
 
-void read_coo_matrix(coo_matrix *coo, const char * mm_filename)
+static inline void read_coo_matrix(coo_matrix *coo, const char * mm_filename)
 {
     FILE * fid;
     MM_typecode matcode;
@@ -172,3 +173,5 @@ void read_coo_matrix(coo_matrix *coo, const char * mm_filename)
     // Sort the COO matrix
     sort_coo(coo);
 }
+
+#endif

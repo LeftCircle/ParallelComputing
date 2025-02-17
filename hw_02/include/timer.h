@@ -1,5 +1,6 @@
 
-#pragma once
+#ifndef TIMER_H
+#define TIMER_H
 
 // A simple timer class
 #include "time.h"
@@ -12,18 +13,18 @@ typedef struct timer
     long long int end;
 } timer;
 
-void timer_start(timer * t) 
+static inline void timer_start(timer * t) 
 {
     t->start = rdtsc();
 }
 
-float seconds_elapsed(timer * t)
+static inline float seconds_elapsed(timer * t)
 { 
     t->end = rdtsc();
     return (t->end - t->start)/FREQ_CPU;
 }
 
-float milliseconds_elapsed(timer * t)
+static inline float milliseconds_elapsed(timer * t)
 { 
     float elapsed_time;
     t->end = rdtsc();
@@ -31,3 +32,4 @@ float milliseconds_elapsed(timer * t)
     return elapsed_time;
 }
 
+#endif

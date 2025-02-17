@@ -12,6 +12,15 @@ all: spmv-mpi spmv-omp tests.exe run-tests
 .c.o:
 	${CC} -o $@ -c ${FLAG} $<
 
+spmv.o: spmv.c spmv.h
+	${CC} -o $@ -c ${FLAG} $<
+
+mmio.o: mmio.c
+	${CC} -o $@ -c ${FLAG} $<
+
+spmv-mpi.o: spmv-mpi.c spmv.h
+	mpicc -o $@ -c ${FLAG} $<
+
 spmv-mpi: spmv-mpi.o ${OBJS}
 	mpicc  ${LDFLAG} -o $@ $^
 

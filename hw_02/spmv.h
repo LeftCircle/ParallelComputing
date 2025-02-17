@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SPMV_H
+#define SPMV_H
 
 #include <stdio.h>
 
@@ -18,9 +19,11 @@
    __typeof__ (b) _b = (b); \
  _a < _b ? _a : _b; })
 
-
- void usage(int argc, char** argv);
-
 // MIN_ITER, MAX_ITER, TIME_LIMIT, 
 double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y);
+void coo_spmv(coo_matrix* coo, float* x, float* y);
+void usage(int argc, char** argv);
+void init_matrix_and_xy_vals(coo_matrix * coo, float *x, float *y);
+int get_n_iterations(int estimated_time);
 
+#endif

@@ -5,7 +5,8 @@
 // NCSU CSC 548 Parallel Systems
 // -----------------------------------------
 
-#pragma once
+#ifndef PARALLELFUNCS_H
+#define PARALLELFUNCS_H
 #include <stdio.h>
 
 
@@ -39,3 +40,5 @@ static inline void print_vecf(float * vec, int size){
 	}
 	printf("\n");
 }
+
+#endif
