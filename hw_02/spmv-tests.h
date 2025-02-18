@@ -1,10 +1,12 @@
-#pragma once
+#ifndef SPMV_TESTS_H
+#define SPMV_TESTS_H
+
 #include <assert.h>
 #include <stdio.h>
 
 
 
-void test_spmv_accuracy(float * parallel_y, float * sequential_y, int size, float threshold){
+static inline void test_spmv_accuracy(float * parallel_y, float * sequential_y, int size, float threshold){
 	// check to see that the values of x allign
 	for (int i = 0; i < size; i++){
 		if (parallel_y[i] - sequential_y[i] > threshold){
@@ -15,3 +17,5 @@ void test_spmv_accuracy(float * parallel_y, float * sequential_y, int size, floa
 	
 	printf("--------------\nParallel and sequential match!!\n--------------\n");
 }
+
+#endif

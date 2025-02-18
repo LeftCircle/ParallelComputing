@@ -28,9 +28,12 @@ spmv-mpi: spmv-mpi.o ${OBJS}
 tests.exe: tests.o 
 	${CC} ${LDFLAG} -o $@ $^
 
+spmv-omp.o: spmv-omp.c spmv.h
+	${CC} -o $@ -c ${FLAG} $<
+
 # spmv-omp compilation
-spmv-omp: spmv-omp.o mmio.o
-	gcc ${LDFLAG} -o $@ $^
+spmv-omp: spmv-omp.o ${OBJS}
+	${CC} ${LDFLAG} -o $@ $^
 
 .PHONY:run-tests
 run-tests: tests.exe
@@ -44,6 +47,6 @@ ifeq ($(OS),Windows_NT)
 	del /f tests.exe 2>nul || true
 else
 	find ./ -name "*.o" -delete
-	rm -f spmv-mpi tests.exe
+	rm -f spmv-mpi tests.exe spmv-omp
 endif
 
