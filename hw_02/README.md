@@ -18,6 +18,10 @@ Q: I do have some existing questions regarding the number of parallel regions ut
 The results can be seen from the following images. One thing to note is that for the MPI calculations, when the transfer time to split the data from node 0 to other nodes, the latency accounted for the majority of the computation time. This was not observed when the reduction of the results from the other nodes to node 0 was included in the benchmark times. Excluding the startup times from the calculation makes the MPI
 Another notable piece is that the sequential algorithm outperformed almost all methods for smaller matrix sizes. The size of the matrices is not included in the graphic, but more information on them can be found from the link above. 
 
+![With MPI Data Init][https://github.com/LeftCircle/ParallelComputing/blob/main/hw_02/graphs/TimesIncludingDataTransfer.png "With MPI Data Init"]
+
+![Without MPI Data Init][https://github.com/LeftCircle/ParallelComputing/blob/main/hw_02/graphs/NoTransferTimes.png "Without MPI Data Init"]
+
 
 ## Background
 Sparse Matrix Vector multiplication (short for SpMV) is an important kernel in both traditional high performance computing and emerging data-intensive applications and deep neural networks after using pruning techniques. Since the data is sparse, that could come from noisy data, missing data, etc., efficient data representation (a.k.a. storage format) without storing zero elements and algorithm is needed to improve its performance. Due to the sparsity, SpMV algorithm generally has irregular memory access, which increases difficulty in performance improvement.
@@ -39,11 +43,11 @@ Testing Dataset: SuiteSparse: [http://sparse.tamu.edu](http://sparse.tamu.edu/) 
                     │ ├── vals[]                        │
                     │ ├── x[] (complete vector)         │
                     │ ├── y[] (holds local result)      │
-					| └── y_parallel[] (final result)   |
+                    | └── y_parallel[] (final result)   |
                     └─────────────────┬─────────────────┘
                                      │
                      ┌───────────────┴───────────────┐
-                     │   Data Distribution Phase      │
+                     │   Data Distribution Phase     │
                      └───────────────┬───────────────┘
                                     ↓
          ┌──────────────────────────┼──────────────────────────┐
@@ -173,7 +177,7 @@ Key Features:
     MPI Node 1           MPI Node 2           MPI Node 3
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
 │ Partial Matrix: │ │ Partial Matrix: │ │ Partial Matrix: │
-│ ~33% of data   │ │ ~33% of data   │ │ ~33% of data    │
+│ ~33% of data    │ │ ~33% of data    │ │ ~33% of data    │
 └────────┬────────┘ └────────┬────────┘ └────────┬────────┘
          │                    │                    │
    OpenMP Teams        OpenMP Teams         OpenMP Teams
@@ -200,7 +204,7 @@ Example for 3 MPI nodes × 2 OpenMP threads:
 │ └─► Level 1: MPI (Distributed Memory)      │
 │     - Handles data distribution            │
 │     - Manages inter-node communication     │
-│                                           │
+│                                            │
 │ └─► Level 2: OpenMP (Shared Memory)        │
 │     - Processes local data chunks          │
 │     - Uses efficient reduction             │
