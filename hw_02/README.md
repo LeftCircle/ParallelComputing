@@ -18,9 +18,9 @@ Q: I do have some existing questions regarding the number of parallel regions ut
 The results can be seen from the following images. One thing to note is that for the MPI calculations, when the transfer time to split the data from node 0 to other nodes, the latency accounted for the majority of the computation time. This was not observed when the reduction of the results from the other nodes to node 0 was included in the benchmark times. Excluding the startup times from the calculation makes the MPI
 Another notable piece is that the sequential algorithm outperformed almost all methods for smaller matrix sizes. The size of the matrices is not included in the graphic, but more information on them can be found from the link above. 
 
-![With MPI Data Init][https://github.com/LeftCircle/ParallelComputing/blob/main/hw_02/graphs/TimesIncludingDataTransfer.png "With MPI Data Init"]
+![With MPI Data Init](https://github.com/LeftCircle/ParallelComputing/blob/main/hw_02/graphs/TimesIncludingDataTransfer.png)
 
-![Without MPI Data Init][https://github.com/LeftCircle/ParallelComputing/blob/main/hw_02/graphs/NoTransferTimes.png "Without MPI Data Init"]
+![Without MPI Data Init](https://github.com/LeftCircle/ParallelComputing/blob/main/hw_02/graphs/NoTransferTimes.png)
 
 
 ## Background
