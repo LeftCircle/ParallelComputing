@@ -116,7 +116,7 @@ vals: [1,2,3,4,5]                [x2]
 └─────────────────┬───────────────┬────────────────┘
                   │               │
         ┌─────────┴─────┬─────────┴────────┐
-        ↓               ↓                   ↓
+        ↓               ↓                  ↓
     Thread 0        Thread 1           Thread 2
    Iterations:     Iterations:        Iterations:
    [0,1]           [2,3]             [4]
@@ -179,9 +179,9 @@ Key Features:
 │ Partial Matrix: │ │ Partial Matrix: │ │ Partial Matrix: │
 │ ~33% of data    │ │ ~33% of data    │ │ ~33% of data    │
 └────────┬────────┘ └────────┬────────┘ └────────┬────────┘
-         │                    │                    │
+         │                   │                   │
    OpenMP Teams        OpenMP Teams         OpenMP Teams
-         │                    │                    │
+         │                   │                   │
     ┌────┴────┐         ┌────┴────┐         ┌────┴────┐
     ↓         ↓         ↓         ↓         ↓         ↓
 Thread 1   Thread 2  Thread 1  Thread 2  Thread 1   Thread 2
