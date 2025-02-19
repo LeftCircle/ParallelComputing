@@ -1,6 +1,5 @@
 #include "spmv.h"
 
-
 // MIN_ITER, MAX_ITER, TIME_LIMIT, 
 double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
 {

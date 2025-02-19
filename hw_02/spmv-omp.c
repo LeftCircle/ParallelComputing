@@ -24,6 +24,7 @@
 int N_THREADS = 8;
 
 int rank, size;
+coo_bench_data og_coo_bench_data;
 
 // split num_nonzeros between threads -> would not have parallel for
 //
@@ -121,9 +122,9 @@ double benchmark_coo_smpv_omp(coo_matrix * coo, float* x, float* y, const char *
 	}
     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
     double sec_per_iteration = msec_per_iteration / 1000.0;
-    double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
-    double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
-    printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
+	double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) og_coo_bench_data.n_nonzeros / sec_per_iteration) / 1e9;
+	double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) og_coo_bench_data.bytes_per_coospmv / sec_per_iteration) / 1e9;
+	printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
 
 	// cleanup
 	for(int i = 0; i < N_THREADS; i++){
@@ -171,6 +172,8 @@ int main(int argc, char** argv)
 
 		//coo_matrix coo;
 		read_coo_matrix(&coo, mm_filename);
+		og_coo_bench_data.n_nonzeros = coo.num_nonzeros;
+		og_coo_bench_data.bytes_per_coospmv = bytes_per_coo_spmv(&coo);
 
 		x = (float *)malloc(coo.num_cols * sizeof(float));
 		y = (float *)malloc(coo.num_rows * sizeof(float));

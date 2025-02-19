@@ -19,6 +19,11 @@
    __typeof__ (b) _b = (b); \
  _a < _b ? _a : _b; })
 
+typedef struct coo_bench_data{
+	int n_nonzeros;
+	double bytes_per_coospmv; 
+} coo_bench_data;
+
 // MIN_ITER, MAX_ITER, TIME_LIMIT, 
 double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y);
 void coo_spmv(coo_matrix* coo, float* x, float* y);

@@ -7,7 +7,7 @@ LDFLAG=-O3 -fopenmp
 OBJS= mmio.o spmv.o
 
 #all: spmv-mpi tests.exe spmv-omp run-tests
-all: spmv-mpi spmv-omp tests.exe run-tests
+all: spmv-mpi spmv-omp spmv-hybrid tests.exe run-tests
 
 .c.o:
 	${CC} -o $@ -c ${FLAG} $<
@@ -33,6 +33,12 @@ spmv-omp.o: spmv-omp.c spmv.h
 
 # spmv-omp compilation
 spmv-omp: spmv-omp.o ${OBJS}
+	${CC} ${LDFLAG} -o $@ $^
+
+spmv-hybrid.o: spmv-hybrid.c spmv.h
+	${CC} -o $@ -c ${FLAG} $<
+
+spmv-hybrid: spmv-hybrid.o ${OBJS}
 	${CC} ${LDFLAG} -o $@ $^
 
 .PHONY:run-tests

@@ -9,7 +9,7 @@
 
 
 #include "spmv-mpi.h"
-
+coo_bench_data og_coo_bench_data;
 
 int main(int argc, char** argv)
 {
@@ -51,8 +51,22 @@ int main(int argc, char** argv)
 	if (rank == 0){
 		_rank_zero_startup(&coo, &x, &y, &y_parallel, mm_filename);
 		og_nonzeros = coo.num_nonzeros;
+		og_coo_bench_data.n_nonzeros = coo.num_nonzeros;
+		og_coo_bench_data.bytes_per_coospmv = bytes_per_coo_spmv(&coo);
 	}
 	
+	#ifdef SEQUENTIAL_BENCH
+		if (rank == 0){
+			benchmark_coo_spmv(&coo, x, y);
+		}
+		MPI_Finalize();
+		return 0;
+	#endif
+
+	#ifdef NO_DATA_TRANSFER
+	_time_without_data_transfer(&coo, &x, &y, y_parallel);
+		
+	#else
 	int num_iterations;
 	timer time_one_iteration;
 	if (rank == 0){
@@ -102,8 +116,8 @@ int main(int argc, char** argv)
 	if (rank == 0){
 		//double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
 		double sec_per_iteration = msec_per_iteration / 1000.0;
-		double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo.num_nonzeros / sec_per_iteration) / 1e9;
-		double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(&coo) / sec_per_iteration) / 1e9;
+		double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) og_coo_bench_data.n_nonzeros / sec_per_iteration) / 1e9;
+		double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) og_coo_bench_data.bytes_per_coospmv / sec_per_iteration) / 1e9;
 		printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
 	}
 	#endif
@@ -135,6 +149,7 @@ int main(int argc, char** argv)
 		}
 	#endif
 	
+	#endif
 	if (rank == 0){
 		// Other nodes free their memory already after the reduce
 		free(x);
@@ -239,6 +254,30 @@ void _coo_spmv_mpi(coo_matrix *coo, float **x, float **y, float *y_parallel){
 	
 	// Other ranks need to free their memory since they get new mem
 	// each time that they are called
+	if (rank != 0){
+		free(*x);
+		free(*y);
+	}
+}
+
+void _time_without_data_transfer(coo_matrix *coo, float **x, float **y, float *y_parallel){
+	_split_vals_between_nodes(coo);
+	_broadcast_data_for_x_and_y(coo, x, y);
+	timer t;
+	timer_start(&t);
+	for(int j = 0; j < 500; j++){
+		coo_spmv(coo, *x, *y);
+		MPI_Reduce(*y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+	double msec_per_iteration = milliseconds_elapsed(&t) / (double) 500;
+	if (rank == 0){
+		double sec_per_iteration = msec_per_iteration / 1000.0;
+		double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) og_coo_bench_data.n_nonzeros / sec_per_iteration) / 1e9;
+		double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) og_coo_bench_data.bytes_per_coospmv / sec_per_iteration) / 1e9;
+		printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
+	}
+
 	if (rank != 0){
 		free(*x);
 		free(*y);

@@ -1,8 +1,9 @@
-#ifndef SPMV_MPI_H
-#define SPMV_MPI_H
+#ifndef SPMV_HYBRID_H
+#define SPMV_HYBRID_H
 
 #include <stdio.h>
 #include <mpi.h>
+#include <omp.h>
 
 #include "cmdline.h"
 #include "input.h"
@@ -30,9 +31,12 @@ void _rank_zero_data_scatter(coo_matrix *coo);
 void _other_rank_data_scatter(coo_matrix * coo);
 void _split_vals_between_nodes(coo_matrix * coo);
 void _broadcast_data_for_x_and_y(coo_matrix * coo, float **x, float **y);
-void _coo_spmv_mpi(coo_matrix *coo, float **x, float **y, float *y_parallel);
+void _coo_spmv_mpi_omp(coo_matrix *coo, float **x, float **y, float *y_parallel);
 void _init_x_and_y_for_nonzero_nodes(coo_matrix *coo, float **x, float **y);
 void _time_without_data_transfer(coo_matrix *coo, float **x, float **y, float *y_parallel);
+
+// OMP
+void coo_spmv_omp(coo_matrix * coo, float * x, float * y);
 
 // wrapper functions
 static inline void spmv_wrapper(void* args){
@@ -40,7 +44,7 @@ static inline void spmv_wrapper(void* args){
 	float ** x = ((spmv_args*)args)->x;
 	float ** y = ((spmv_args*)args)->y;
 	float * y_parallel = ((spmv_args*)args)->y_parallel;
-	_coo_spmv_mpi(coo, x, y, y_parallel);
+	_coo_spmv_mpi_omp(coo, x, y, y_parallel);
 }
 
 /**
