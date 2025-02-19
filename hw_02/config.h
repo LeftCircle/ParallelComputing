@@ -12,6 +12,6 @@
 
 //#define TESTING
 //#define DEBUG
-#define SEQUENTIAL_CHECK
+//#define SEQUENTIAL_CHECK
 #define NO_DATA_TRANSFER
 //#define SEQUENTIAL_BENCH
