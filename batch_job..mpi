@@ -1,0 +1,41 @@
+#!/bin/bash
+
+#SBATCH -J CSC548_hw_02      # Job name
+#SBATCH -o ../../batch_out/job.%j.out        # Name of stdout output file (%j expands to jobId)
+#SBATCH -N 1                 # Total number of nodes requested
+#SBATCH -n 8                 # Total number of mpi tasks requested
+
+# Launch MPI-based executable
+
+#!/bin/bash
+
+# Load required modules
+module load gnu12/12.4.0
+#module load gcc/11.2.0 
+module load openmpi4/4.1.6
+
+# Export required environment variables
+export MV2_ENABLE_AFFINITY=0
+export OMP_NUM_THREADS=2
+
+make clean
+make
+echo "Compilation succesful!"
+
+# Array of matrix files
+matrix_files=("example_matrices/tests/D6-6.mtx" "example_matrices/tests/bfly.mtx" "example_matrices/tests/dictionary28.mtx" "example_matrices/tests/Ga3As3H12.mtx" "example_matrices/tests/pkustk14.mtx" "example_matrices/tests/roadNet-CA.mtx")
+
+# Loop through each matrix file and run the executable
+for MATRIX in "${matrix_files[@]}"
+do
+    if [[ -f "$MATRIX" ]]; then
+        echo "Running with matrix: $MATRIX"
+        #mpirun ./spmv-mpi "$MATRIX"
+		./spmv-omp "$MATRIX"
+		#mpirun ./spmv-hybrid "$MATRIX"
+    else
+        echo "Warning: Matrix file $MATRIX not found. Skipping..."
+    fi
+done
+
+# mpirun ./spmv-mpi example_matrices/5pt_10x10.mtx

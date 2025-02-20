@@ -54,6 +54,15 @@ void coo_spmv_omp_reduction(coo_matrix * coo, float * x, float * y){
 	}
 }
 
+// Faster for this data access because we don't need new arrays for each thread
+void coo_spmv_omp_atomic(coo_matrix * coo, float * x, float * y){
+	#pragma omp parallel for reduction(+:y[:coo->num_rows]) num_threads(N_THREADS)
+	for (int i = 0; i < coo->num_nonzeros; i++){
+		#pragma omp atomic
+		y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]];
+	}
+}
+
 // // Could try using #pragma omp critical on the y addition to see if it is faster
 // void coo_smpv_omp_single_y(coo_matrix * coo, float * x, float * y, float mod){
 // 	int num_nonzeros = coo->num_nonzeros;
