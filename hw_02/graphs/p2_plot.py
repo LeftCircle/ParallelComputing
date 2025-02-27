@@ -30,9 +30,15 @@ for method, file_path in zip(file_names, file_paths):
                 unique_matrices.add(matrix)
                 unique_methods.add(method)
 
+print("data_dict:", data_dict)
+
 # Convert to lists for plotting
 matrices = sorted(list(unique_matrices))
 methods = sorted(list(unique_methods))
+
+print()
+print("matrices:", matrices)
+print("methods:", methods)
 
 # Create the plot
 fig, ax = plt.subplots(figsize=(12, 6))
