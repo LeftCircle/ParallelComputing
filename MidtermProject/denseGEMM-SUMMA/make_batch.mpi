@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#SBATCH -J batch      # Job name
+#SBATCH -o ../../batch_out/batch_out.out        # Name of stdout output file (%j expands to jobId)
+#SBATCH -N 4                 # Total number of nodes requested
+#SBATCH -n 4                 # Total number of mpi tasks requested
+
+# Launch MPI-based executable
+
+make clean
+echo "Running tests:"
+make
+make test
+echo "tests are complete"
+make clean
+echo "Running script"
+make run

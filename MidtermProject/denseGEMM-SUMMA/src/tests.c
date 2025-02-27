@@ -1,8 +1,5 @@
-#include <stdio.h>
-#include <assert.h>
-#include <stdlib.h>
+#include "tests.h"
 
-#include "utils.h"
 
 void test_create_matrix(){
 	// Create an m x n matrix. 
@@ -20,7 +17,7 @@ void test_create_matrix(){
 
 
 
-int main() {
+int run_tests() {
 	test_create_matrix();
 	printf("All tests passed\n");
 	return 0;
