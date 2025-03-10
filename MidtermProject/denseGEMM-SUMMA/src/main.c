@@ -65,7 +65,8 @@ int main(int argc, char *argv[]) {
 
   // Get the number of processes
   // TODO: Get the total number of processes
-
+  float test_var = 1.234;
+  int size = (int)sqrt(test_var);
   SummaOpts opts;
   opts = parse_args(argc, argv);
   // Broadcast options to all processes
