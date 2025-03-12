@@ -1,27 +1,32 @@
 #include "utils.h"
-#include <stdio.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
+
 
 void matmul(float* A, float* B, float* C, int m, int n, int k) {
     // Initialize output matrix to zero
     memset(C, 0, m * n * sizeof(float));
-    
-    // C[i,j] = sum(A[i,p] * B[p,j])
-    for (int i = 0; i < m; i++) {
-        for (int j = 0; j < n; j++) {
-            float sum = 0.0f;
-            for (int p = 0; p < k; p++) {
-                // A is m×k, B is k×n
-                float a_val = A[i * k + p];       // A[i,p]
-                float b_val = B[p * n + j];       // B[p,j]
-                sum += a_val * b_val;
-            }
-            C[i * n + j] = sum;
-        }
-    }
+	// C[i,j] = sum(A[i,p] * B[p,j])
+	for (int i = 0; i < m; i++) {
+		for (int p = 0; p < k; p++) {
+			for (int j = 0; j < n; j++) {
+				C[i * n + j] += A[i * k + p] * B[p * n + j];
+			}
+		}
+	}
 }
+//     // C[i,j] = sum(A[i,p] * B[p,j])
+//     for (int i = 0; i < m; i++) {
+//         for (int j = 0; j < n; j++) {
+//             float sum = 0.0f;
+//             for (int p = 0; p < k; p++) {
+//                 // A is m×k, B is k×n
+//                 float a_val = A[i * k + p];       // A[i,p]
+//                 float b_val = B[p * n + j];       // B[p,j]
+//                 sum += a_val * b_val;
+//             }
+//             C[i * n + j] = sum;
+//         }
+//     }
+// }
 
 void verify_result(float* C_global, float* A, float* B, int m, int n, int k) {
     int errors = 0;
@@ -108,14 +113,32 @@ float* generate_matrix_B(int rows, int cols, int rank) {
     return matrix;
 }
 
-
-/**
- * Generates a zero-initialized matrix of given dimensions
- * @param rows Number of rows
- * @param cols Number of columns
- * @return Pointer to allocated matrix (caller must free)
- */
-float* generate_matrix(int rows, int cols){
-	float* matrix = (float*)calloc(rows*cols, sizeof(float));
+float* generate_int_matrix(int rows, int cols, int rank) {
+	float* matrix = malloc(rows * cols * sizeof(float));
+	
+	for (int i = 0; i < rows * cols; i++) {
+		matrix[i] = i;
+	}
+	
 	return matrix;
+}
+
+
+// /**
+//  * Generates a zero-initialized matrix of given dimensions
+//  * @param rows Number of rows
+//  * @param cols Number of columns
+//  * @return Pointer to allocated matrix (caller must free)
+//  */
+// float* generate_matrix(int rows, int cols){
+// 	float* matrix = (float*)calloc(rows*cols, sizeof(float));
+// 	return matrix;
+// }
+
+Matrix* init_c_matrix_for_stationary_c(int m, int k, int n, int n_processors, int rank){
+	Matrix *local_c = (Matrix*)malloc(sizeof(Matrix));
+	local_c->rows = m / (int)sqrt(n_processors);
+	local_c->cols = n / (int)sqrt(n_processors);
+	local_c->matrix = (float*)calloc(local_c->rows * local_c->cols, sizeof(float));
+	return local_c;
 }

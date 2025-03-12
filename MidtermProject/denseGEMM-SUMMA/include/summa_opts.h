@@ -1,5 +1,5 @@
-#ifndef SUMMA_OPTS_H
-#define SUMMA_OPTS_H
+#ifndef __SUMMA_OPTS_H__
+#define __SUMMA_OPTS_H__
 
 typedef struct {
     int m;              // rows of A
@@ -10,6 +10,12 @@ typedef struct {
     int verbose;        // print additional info
     int metrics;        // print performance metrics
 } SummaOpts;
+
+typedef struct {
+	int rows;
+	int cols;
+	float* matrix;
+} Matrix;
 
 void print_usage(const char* prog_name);
 SummaOpts parse_args(int argc, char *argv[]);

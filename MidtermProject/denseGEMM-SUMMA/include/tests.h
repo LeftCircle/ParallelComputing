@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include "utils.h"
+#include "summa_opts.h"
 
 int run_tests();
 
