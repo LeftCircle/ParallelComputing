@@ -1,0 +1,31 @@
+find ./ -name "*.o" -delete
+rm -rf obj summa
+Running tests:
+mkdir -p obj
+mpicc -Wall -O3 -I./include -c src/tests.c -o obj/tests.o
+src/tests.c: In function ‘test_sending_a_to_processors_for_stationary_c_summa’:
+src/tests.c:104:37: warning: statement with no effect [-Wunused-value]
+  104 |         for (int i = 0; i < size; i + grid_size){
+      |                                   ~~^~~~~~~~~~~
+src/tests.c:56:13: warning: unused variable ‘n’ [-Wunused-variable]
+   56 |         int n = 8;
+      |             ^
+src/tests.c:108:33: warning: ‘A’ may be used uninitialized [-Wmaybe-uninitialized]
+  108 |                                 MPI_Scatter(A, local_a_rc.cols, MPI_FLOAT, local_a_start, local_a_rc.cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/tests.c:61:16: note: ‘A’ was declared here
+   61 |         float *A;
+      |                ^
+mpicc -Wall -O3 -I./include -c src/main.c -o obj/main.o
+mpicc -Wall -O3 -I./include -c src/summa_opts.c -o obj/summa_opts.o
+mpicc -Wall -O3 -I./include -c src/utils.c -o obj/utils.o
+src/utils.c: In function ‘init_a_matrix_for_stationary_c_summa’:
+src/utils.c:149:13: warning: unused variable ‘block_k’ [-Wunused-variable]
+  149 |         int block_k = ceil(k / grid_size);
+      |             ^~~~~~~
+src/utils.c:148:13: warning: unused variable ‘block_m’ [-Wunused-variable]
+  148 |         int block_m = ceil(m / grid_size);
+      |             ^~~~~~~
+mpicc obj/tests.o obj/main.o obj/summa_opts.o obj/utils.o -o summa -lm
+mpirun -np 1 ./summa -t
+slurmstepd-c48: error: *** JOB 93416 ON c48 CANCELLED AT 2025-03-12T16:06:47 ***
