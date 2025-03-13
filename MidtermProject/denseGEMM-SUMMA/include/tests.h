@@ -8,6 +8,6 @@
 #include "utils.h"
 #include "summa_opts.h"
 
-int run_tests();
+int run_tests(int argc, char *argv[]);
 
 #endif

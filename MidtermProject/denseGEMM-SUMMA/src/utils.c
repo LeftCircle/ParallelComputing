@@ -135,10 +135,20 @@ float* generate_int_matrix(int rows, int cols, int rank) {
 // 	return matrix;
 // }
 
-Matrix* init_c_matrix_for_stationary_c(int m, int k, int n, int n_processors, int rank){
-	Matrix *local_c = (Matrix*)malloc(sizeof(Matrix));
-	local_c->rows = m / (int)sqrt(n_processors);
-	local_c->cols = n / (int)sqrt(n_processors);
-	local_c->matrix = (float*)calloc(local_c->rows * local_c->cols, sizeof(float));
-	return local_c;
+// Matrix* init_c_matrix_for_stationary_c(int m, int k, int n, int grid_size, int rank){
+// 	Matrix *local_c = (Matrix*)malloc(sizeof(Matrix));
+// 	local_c->rows = m / grid_size;
+// 	local_c->cols = n / grid_size;
+// 	local_c->matrix = (float*)calloc(local_c->rows * local_c->cols, sizeof(float));
+// 	return local_c;
+// }
+
+void init_a_matrix_for_stationary_c_summa(float* A, int m, int k,int n_processors, int rank){
+	int grid_size = (int)sqrt(n_processors);
+	int block_m = ceil(m / grid_size);
+	int block_k = ceil(k / grid_size);
+	//A->rows = block_m;
+	//A->cols = block_k;
+	//A->matrix = (float*)calloc(A->rows * A->cols, sizeof(float));
+
 }

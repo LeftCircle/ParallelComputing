@@ -17,8 +17,8 @@ BIN_DIR = .
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 # Create a separate list of objects excluding main.c
-SOURCES_NO_MAIN = $(filter-out $(SRC_DIR)/main.c, $(SOURCES))
-OBJECTS_NO_MAIN = $(SOURCES_NO_MAIN:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
+# SOURCES_NO_MAIN = $(filter-out $(SRC_DIR)/main.c, $(SOURCES))
+# OBJECTS_NO_MAIN = $(SOURCES_NO_MAIN:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 TARGET = summa
 

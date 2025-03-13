@@ -1,6 +1,15 @@
 #ifndef __SUMMA_OPTS_H__
 #define __SUMMA_OPTS_H__
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <getopt.h>
+#include <string.h>
+#include <stddef.h>
+#include <mpi.h>
+
+#include "utils.h"
+
 typedef struct {
     int m;              // rows of A
     int n;              // cols of B
@@ -17,7 +26,13 @@ typedef struct {
 	float* matrix;
 } Matrix;
 
+typedef struct{
+	int rows;
+	int cols;
+} RowCol;
+
 void print_usage(const char* prog_name);
 SummaOpts parse_args(int argc, char *argv[]);
+MPI_Datatype create_rowcol_type();
 
 #endif

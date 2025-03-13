@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <string.h>
 #include "summa_opts.h"
 
 void print_usage(const char* prog_name) {
@@ -75,4 +71,24 @@ SummaOpts parse_args(int argc, char *argv[]) {
     }
 
     return opts;
+}
+
+// See https://stackoverflow.com/questions/20040663/how-to-create-new-type-in-mpi 
+// for more info if we were to send arrays of structs
+MPI_Datatype create_rowcol_type() {
+	MPI_Datatype temp_type;
+	MPI_Datatype rowcol_type;
+	
+	int count = 2;
+	int blocklens[2] = {1, 1};
+	MPI_Aint indices[2];
+	indices[0] = (MPI_Aint)offsetof(RowCol, rows);
+	indices[1] = (MPI_Aint)offsetof(RowCol, cols);
+	MPI_Datatype old_types[2] = {MPI_INT, MPI_INT};
+
+	MPI_Type_create_struct(count, blocklens, indices, old_types, &temp_type);
+	MPI_Type_create_resized(temp_type, indices[0], (MPI_Aint)sizeof(RowCol), &rowcol_type);
+	MPI_Type_commit(&rowcol_type);
+	MPI_Type_free(&temp_type);
+	return rowcol_type;
 }

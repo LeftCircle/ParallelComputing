@@ -61,7 +61,7 @@ void summa_stationary_b(int m, int n, int k, int nprocs, int rank) {
 int main(int argc, char *argv[]) {
 	// check to see if -t flag is passed
 	if (argc > 1 && strcmp(argv[1], "-t") == 0) {
-		run_tests();
+		run_tests(argc, argv);
 		return 0;
 	}
 
