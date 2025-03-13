@@ -164,15 +164,8 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 	int blocksize = local_a_rows * local_a_cols;  // Size of each block
 
 	int coords[2];
-	
-	// Set up sendcounts - each processor gets the same size block
-	for(int i = 0; i < size; i++) {
-		sendcounts[i] = 1;
-		MPI_Cart_coords(comm, i, 2, coords);
-		int p_row = coords[0];
-		int p_col = coords[1];
-		displs[i] = p_row * local_a_rows * k + p_col * local_a_cols;
-	}
+
+	set_send_offset_for_block_scat_gath(sendcounts, displs, m, k, grid_size, comm);
 
 	if (rank == 0){
 		for (int i = 0; i < size; i++){
@@ -233,10 +226,55 @@ float* scatter_matrix(float* matrix, int rank, int size, int m, int k, MPI_Comm 
 	MPI_Datatype rowcol_type = create_rowcol_type();
 	MPI_Bcast(&local_a_rc, 1, rowcol_type, 0, MPI_COMM_WORLD);
 	MPI_Type_free(&rowcol_type);
-	
+
 	// Now send over the parts of A to each processor
 	float* local_a = (float*)malloc(local_a_rc.rows * local_a_rc.cols * sizeof(float));
 
 	scatter_row_major_matrix(matrix, local_a, m, k, grid_size, rank, size, comm);
 	return local_a;
+}
+
+float* init_c_matrix_for_stationary_c(int m, int k, int n, int n_processors, int rank){
+	int grid_size = (int)sqrt(n_processors);
+	int block_m = ceil(m / grid_size);
+	int block_n = ceil(n / grid_size);
+	float* local_c = (float*)calloc(block_m * block_n, sizeof(float));
+	return local_c;
+}
+
+void set_send_offset_for_block_scat_gath(int* sendcounts, int* displs, int m,
+												int k, int grid_size, MPI_Comm comm) {
+	int local_rows = m / grid_size;
+	int local_cols = k / grid_size;
+	for(int i = 0; i < grid_size * grid_size; i++) {
+		sendcounts[i] = 1;
+		int coords[2];
+		MPI_Cart_coords(comm, i, 2, coords);
+		int p_row = coords[0];
+		int p_col = coords[1];
+		displs[i] = p_row * local_rows * k + p_col * local_cols;
+	}
+}
+
+void gather_row_major_matrix(float* local_matrix, float* global_matrix, 
+					int m, int n, int grid_size, int rank, int size, MPI_Comm comm) {
+	
+	int *recvcounts = (int*)malloc(size * sizeof(int));
+	int *displs = (int*)malloc(size * sizeof(int));
+
+	int blocksize = m / grid_size * n / grid_size;
+	set_send_offset_for_block_scat_gath(recvcounts, displs, m, n, grid_size, comm);
+
+	// Create MPI datatype for the block
+	MPI_Datatype blocktype = create_block_type(m, n, grid_size);
+
+	// Gather the blocks
+	MPI_Gatherv(local_matrix, blocksize, MPI_FLOAT,
+				global_matrix, recvcounts, displs, blocktype,
+				0, comm);
+
+	// Cleanup
+	MPI_Type_free(&blocktype);
+	free(recvcounts);
+	free(displs);
 }

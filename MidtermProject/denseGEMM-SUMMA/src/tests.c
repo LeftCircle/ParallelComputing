@@ -92,18 +92,6 @@ void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 		p_expected_a_matrix[3] = 15;
 	}
 
-	
-	// process 0 needs to send the correct parts of A to each processor
-	// RowCol local_a_rc;
-	// if (rank == 0){
-	// 	local_a_rc.rows = ceil(m / grid_size);
-	// 	local_a_rc.cols = ceil(k / grid_size);
-	// }
-	// MPI_Datatype rowcol_type = create_rowcol_type();
-	// MPI_Bcast(&local_a_rc, 1, rowcol_type, 0, MPI_COMM_WORLD);
-	// // Now send over the parts of A to each processor
-	// float* local_a = (float*)malloc(local_a_rc.rows * local_a_rc.cols * sizeof(float));
-
 	// scatter_row_major_matrix(A, local_a, m, k, grid_size, rank, size, comm);
 	float* local_a = scatter_matrix(A, rank, size, m, k, comm);
 
@@ -116,6 +104,88 @@ void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 
 	free(A);
 	free(local_a);
+}
+
+void test_stationary_c_summa(int rank, int size){
+	int m = 4;
+	int k = 4;
+	int n = 8;
+	int grid_size = (int)sqrt(size);
+	int n_processors = size;
+	// Create the grid of processors with MPI
+	MPI_Comm comm = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+
+	// Generate the A and B matrices
+	float *A;
+	float *B;
+	if (rank == 0){
+		A = generate_int_matrix(m, k, 0);
+		B = generate_int_matrix(k, n, 0);
+	}
+
+	// Create the local A and B matrices
+	float* local_a = scatter_matrix(A, rank, size, m, k, comm);
+	float* local_b = scatter_matrix(B, rank, size, k, n, comm);
+
+	// Create the local C matrix
+	float *local_c = init_c_matrix_for_stationary_c(m, k, n, n_processors, rank);
+
+
+	// Create row and column communicators
+	int coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	MPI_Comm row_comm, col_comm;
+	MPI_Comm_split(comm, coords[0], coords[1], &row_comm);
+	MPI_Comm_split(comm, coords[1], coords[0], &col_comm);
+
+	int local_rows = ceil(m / grid_size);
+	int local_cols = ceil(n / grid_size);
+	int local_k = ceil(k / grid_size);
+
+
+	// Now we need to broadcast A along the rows
+	// Now we need to broadcast B along the columns
+	float* tmp_a = (float*)malloc(local_rows * local_k * sizeof(float));
+	float* tmp_b = (float*)malloc(local_k * local_cols * sizeof(float));
+	for (int i = 0; i < grid_size; i++){
+		// Broadcast A
+		if (coords[1] == i){
+			memcpy(tmp_a, local_a, local_rows * local_k * sizeof(float));
+		}
+		MPI_Bcast(tmp_a, local_rows * local_k, MPI_FLOAT, i, row_comm);
+
+		// Broadcast B
+		if (coords[0] == i){
+			memcpy(tmp_b, local_b, local_k * local_cols * sizeof(float));
+		}
+		MPI_Bcast(tmp_b, local_k * local_cols, MPI_FLOAT, i, col_comm);
+
+		// Multiply the matrices
+		matmul(tmp_a, tmp_b, local_c, local_rows, local_cols, local_k);
+	}
+
+	// Now we need to gather the local C matrices to the global C matrix
+	float* C = (float*)malloc(m * n * sizeof(float));
+	gather_row_major_matrix(local_c, C, m, n, grid_size, rank, size, comm);
+
+	// Now we need to verify the result
+	if (rank == 0){
+		verify_result(C, A, B, m, n, k);
+	}
+
+	free(A);
+	free(B);
+	free(local_a);
+	free(local_b);
+	free(local_c);
+	free(C);
+	free(tmp_a);
+	free(tmp_b);
+	MPI_Comm_free(&comm);
+	MPI_Comm_free(&row_comm);
+	MPI_Comm_free(&col_comm);
+
+
 }
 
 
