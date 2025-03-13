@@ -58,10 +58,7 @@ void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 	int grid_size = (int)sqrt(n_processors);
 
 	// Create the grid of processors with MPI
-	MPI_Comm comm;
-	int dims[2] = {grid_size, grid_size};
-	int periods[2] = {0, 0};
-	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &comm);
+	MPI_Comm comm = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
 	
 	// Generate the A and B matrices
 	float *A;
@@ -97,40 +94,25 @@ void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 
 	
 	// process 0 needs to send the correct parts of A to each processor
-	RowCol local_a_rc;
-	if (rank == 0){
-		local_a_rc.rows = ceil(m / grid_size);
-		local_a_rc.cols = ceil(k / grid_size);
-	}
-	MPI_Datatype rowcol_type = create_rowcol_type();
-	MPI_Bcast(&local_a_rc, 1, rowcol_type, 0, MPI_COMM_WORLD);
-	// Now send over the parts of A to each processor
-	float* local_a = (float*)malloc(local_a_rc.rows * local_a_rc.cols * sizeof(float));
-
-	
-	// int* workload_array_size = (int*)malloc(size * sizeof(int));
-	// int* workload_array_offset = (int*)malloc(size * sizeof(int));
-	// for (int i = 0; i < size; i++){
-	// 	workload_array_size[i] = local_a_rc.rows * local_a_rc.cols;
+	// RowCol local_a_rc;
+	// if (rank == 0){
+	// 	local_a_rc.rows = ceil(m / grid_size);
+	// 	local_a_rc.cols = ceil(k / grid_size);
 	// }
-	// for (int i )
-	scatter_row_major_matrix(A, local_a, m, k, grid_size, rank, size, comm);
+	// MPI_Datatype rowcol_type = create_rowcol_type();
+	// MPI_Bcast(&local_a_rc, 1, rowcol_type, 0, MPI_COMM_WORLD);
+	// // Now send over the parts of A to each processor
+	// float* local_a = (float*)malloc(local_a_rc.rows * local_a_rc.cols * sizeof(float));
 
-	if (rank == 1){
-		printf("local_a_rc.rows: %d\n", local_a_rc.rows);
-		printf("local_a_rc.cols: %d\n", local_a_rc.cols);
-		for (int i = 0; i < local_a_rc.rows * local_a_rc.cols; i++){
-			printf("local_a[%d]: %f\n", i, local_a[i]);
-		}
-	}
+	// scatter_row_major_matrix(A, local_a, m, k, grid_size, rank, size, comm);
+	float* local_a = scatter_matrix(A, rank, size, m, k, comm);
 
+	int local_a_rows = ceil(m / grid_size);
+	int local_a_cols = ceil(k / grid_size);
 	// Now check that the local_a matrix is correct
-	for (int i = 0; i < local_a_rc.rows * local_a_rc.cols; i++){
+	for (int i = 0; i < local_a_rows * local_a_cols; i++){
 		assert(local_a[i] == p_expected_a_matrix[i]);
 	}
-
-	MPI_Type_free(&rowcol_type);
-
 
 	free(A);
 	free(local_a);

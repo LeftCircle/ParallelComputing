@@ -168,13 +168,10 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 	// Set up sendcounts - each processor gets the same size block
 	for(int i = 0; i < size; i++) {
 		sendcounts[i] = 1;
-		// Setup the displacements
 		MPI_Cart_coords(comm, i, 2, coords);
 		int p_row = coords[0];
 		int p_col = coords[1];
 		displs[i] = p_row * local_a_rows * k + p_col * local_a_cols;
-		//printf("k * p_row + p_col * local_a_cols: %d\n", k * p_row + p_col * local_a_cols);
-		//printf("k = %d p_row = %d p_col = %d local_a_cols = %d\n", k, p_row, p_col, local_a_cols);
 	}
 
 	if (rank == 0){
@@ -183,21 +180,6 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 			printf("Displacement = %d\n", displs[i]);
 		}
 	}
-
-	// // Set up displacement array - where each block starts in the source matrix
-	// displs[0] = 0;                          // P0: starts at 0
-	// displs[1] = m/grid_size;                // P1: starts after first half-row
-	// displs[2] = (m*k/grid_size);            // P2: starts after first half-matrix
-	// displs[3] = (m*k/grid_size) + m/grid_size;  // P3: starts after P2's position
-
-	// Create MPI datatype for block
-	// MPI_Datatype blocktype;
-	// MPI_Type_vector(2,    // number of blocks
-	// 				2,    // elements per block
-	// 				4,             // stride between blocks
-	// 				MPI_FLOAT,     // element datatype
-	// 				&blocktype);   // new datatype
-	// MPI_Type_commit(&blocktype);
 	MPI_Datatype blocktype = create_block_type(m, k, grid_size);
 
 	// Scatter the blocks
@@ -206,6 +188,8 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 		0, comm);
 
 	MPI_Type_free(&blocktype);
+	free(sendcounts);
+	free(displs);
 }
 
 MPI_Datatype create_block_type(int m, int k, int grid_size) {
@@ -228,4 +212,31 @@ MPI_Datatype create_block_type(int m, int k, int grid_size) {
     MPI_Type_free(&tmp_type);
     
     return block_type;
+}
+
+MPI_Comm create_cartesian_topology(MPI_Comm comm, int grid_size){
+	int dims[2] = {grid_size, grid_size};
+	int periods[2] = {0, 0};
+	MPI_Comm comm_cart;
+	MPI_Cart_create(comm, 2, dims, periods, 0, &comm_cart);
+	return comm_cart;
+}
+
+
+float* scatter_matrix(float* matrix, int rank, int size, int m, int k, MPI_Comm comm){
+	RowCol local_a_rc;
+	int grid_size = (int)sqrt(size);
+	if (rank == 0){
+		local_a_rc.rows = ceil(m / grid_size);
+		local_a_rc.cols = ceil(k / grid_size);
+	}
+	MPI_Datatype rowcol_type = create_rowcol_type();
+	MPI_Bcast(&local_a_rc, 1, rowcol_type, 0, MPI_COMM_WORLD);
+	MPI_Type_free(&rowcol_type);
+	
+	// Now send over the parts of A to each processor
+	float* local_a = (float*)malloc(local_a_rc.rows * local_a_rc.cols * sizeof(float));
+
+	scatter_row_major_matrix(matrix, local_a, m, k, grid_size, rank, size, comm);
+	return local_a;
 }

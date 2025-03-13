@@ -20,6 +20,8 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 	int grid_size, int rank, int size, MPI_Comm comm);
 
 MPI_Datatype create_block_type(int m, int k, int grid_size);
+MPI_Comm create_cartesian_topology(MPI_Comm comm, int grid_size);
+float* scatter_matrix(float* matrix, int rank, int size, int m, int k, MPI_Comm comm);
 
 //float* generate_int_matrix(int rows, int cols, int rank);
 //Matrix* init_c_matrix_for_stationary_c(int m, int k, int n, int n_processors, int rank);
