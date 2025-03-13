@@ -57,6 +57,12 @@ void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 	int n_processors = 4;
 	int grid_size = (int)sqrt(n_processors);
 
+	// Create the grid of processors with MPI
+	MPI_Comm comm;
+	int dims[2] = {grid_size, grid_size};
+	int periods[2] = {0, 0};
+	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, 0, &comm);
+	
 	// Generate the A and B matrices
 	float *A;
 	//float *B;
@@ -101,24 +107,16 @@ void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 	// Now send over the parts of A to each processor
 	float* local_a = (float*)malloc(local_a_rc.rows * local_a_rc.cols * sizeof(float));
 
-	// for (int i = 0; i < size; i + grid_size){
-	// 	if (rank >= i && rank < i + grid_size){
-	// 		for(int j = 0; j < local_a_rc.rows; j++){
-	// 			float* local_a_start = local_a + j * local_a_rc.cols;
-	// 			MPI_Scatter(A, local_a_rc.cols, MPI_FLOAT, local_a_start, local_a_rc.cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
-	// 		}
-	// 	}
-	// }
-	int* workload_array_size = (int*)malloc(size * sizeof(int));
-	int* workload_array_offset = (int*)malloc(size * sizeof(int));
-	for (int i = 0; i < size; i++){
-		workload_array_size[i] = local_a_rc.rows * local_a_rc.cols;
-	}
-	for (int i )
-
 	
+	// int* workload_array_size = (int*)malloc(size * sizeof(int));
+	// int* workload_array_offset = (int*)malloc(size * sizeof(int));
+	// for (int i = 0; i < size; i++){
+	// 	workload_array_size[i] = local_a_rc.rows * local_a_rc.cols;
+	// }
+	// for (int i )
+	scatter_row_major_matrix(A, local_a, m, k, grid_size, rank, size, comm);
 
-	if (rank == 0){
+	if (rank == 1){
 		printf("local_a_rc.rows: %d\n", local_a_rc.rows);
 		printf("local_a_rc.cols: %d\n", local_a_rc.cols);
 		for (int i = 0; i < local_a_rc.rows * local_a_rc.cols; i++){

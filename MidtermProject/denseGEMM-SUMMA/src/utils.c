@@ -152,3 +152,80 @@ void init_a_matrix_for_stationary_c_summa(float* A, int m, int k,int n_processor
 	//A->matrix = (float*)calloc(A->rows * A->cols, sizeof(float));
 
 }
+
+void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, int k,
+						      int grid_size, int rank, int size, MPI_Comm comm) {
+	// After local_a allocation, replace the commented scattering code with:
+	int *sendcounts = (int*)malloc(size * sizeof(int));
+	int *displs = (int*)malloc(size * sizeof(int));
+	
+	int local_a_rows = m / grid_size;
+	int local_a_cols = k / grid_size;
+	int blocksize = local_a_rows * local_a_cols;  // Size of each block
+
+	int coords[2];
+	
+	// Set up sendcounts - each processor gets the same size block
+	for(int i = 0; i < size; i++) {
+		sendcounts[i] = 1;
+		// Setup the displacements
+		MPI_Cart_coords(comm, i, 2, coords);
+		int p_row = coords[0];
+		int p_col = coords[1];
+		displs[i] = p_row * local_a_rows * k + p_col * local_a_cols;
+		//printf("k * p_row + p_col * local_a_cols: %d\n", k * p_row + p_col * local_a_cols);
+		//printf("k = %d p_row = %d p_col = %d local_a_cols = %d\n", k, p_row, p_col, local_a_cols);
+	}
+
+	if (rank == 0){
+		for (int i = 0; i < size; i++){
+			printf("Sendcounts = %d\n", sendcounts[i]);
+			printf("Displacement = %d\n", displs[i]);
+		}
+	}
+
+	// // Set up displacement array - where each block starts in the source matrix
+	// displs[0] = 0;                          // P0: starts at 0
+	// displs[1] = m/grid_size;                // P1: starts after first half-row
+	// displs[2] = (m*k/grid_size);            // P2: starts after first half-matrix
+	// displs[3] = (m*k/grid_size) + m/grid_size;  // P3: starts after P2's position
+
+	// Create MPI datatype for block
+	// MPI_Datatype blocktype;
+	// MPI_Type_vector(2,    // number of blocks
+	// 				2,    // elements per block
+	// 				4,             // stride between blocks
+	// 				MPI_FLOAT,     // element datatype
+	// 				&blocktype);   // new datatype
+	// MPI_Type_commit(&blocktype);
+	MPI_Datatype blocktype = create_block_type(m, k, grid_size);
+
+	// Scatter the blocks
+	MPI_Scatterv(global_matrix, sendcounts, displs, blocktype,
+		local_matrix, blocksize, MPI_FLOAT,
+		0, comm);
+
+	MPI_Type_free(&blocktype);
+}
+
+MPI_Datatype create_block_type(int m, int k, int grid_size) {
+    MPI_Datatype tmp_type, block_type;
+    
+    // Create vector type for one row of the block
+    MPI_Type_vector(m/grid_size,    // number of blocks (rows)
+                    k/grid_size,    // elements per block (columns)
+                    k,              // stride between blocks (full matrix width)
+                    MPI_FLOAT,      // element datatype
+                    &tmp_type);     // new datatype
+    
+    // Create resized type to handle displacements correctly
+    MPI_Type_create_resized(tmp_type, 
+                           0,                    // lower bound
+                           sizeof(float),        // extent
+                           &block_type);
+    
+    MPI_Type_commit(&block_type);
+    MPI_Type_free(&tmp_type);
+    
+    return block_type;
+}

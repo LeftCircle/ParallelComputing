@@ -55,6 +55,6 @@ run:
 	mpirun -np 4 ./summa -m 16 -n 16 -k 16 -b 16 -s b -v -p
 
 test:
-	mpirun -np 1 ./summa -t
+	mpirun -np 4 ./summa -t -w
 
 .PHONY: all clean run directories
