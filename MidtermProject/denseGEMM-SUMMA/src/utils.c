@@ -167,12 +167,12 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 
 	set_send_offset_for_block_scat_gath(sendcounts, displs, m, k, grid_size, comm);
 
-	if (rank == 0){
-		for (int i = 0; i < size; i++){
-			printf("Sendcounts = %d\n", sendcounts[i]);
-			printf("Displacement = %d\n", displs[i]);
-		}
-	}
+	// if (rank == 0){
+	// 	for (int i = 0; i < size; i++){
+	// 		printf("Sendcounts = %d\n", sendcounts[i]);
+	// 		printf("Displacement = %d\n", displs[i]);
+	// 	}
+	// }
 	MPI_Datatype blocktype = create_block_type(m, k, grid_size);
 
 	// Scatter the blocks
@@ -207,12 +207,27 @@ MPI_Datatype create_block_type(int m, int k, int grid_size) {
     return block_type;
 }
 
-MPI_Comm create_cartesian_topology(MPI_Comm comm, int grid_size){
+CartCommunicator create_cartesian_topology(MPI_Comm comm, int grid_size){
+	int size;
+	MPI_Comm_size(comm, &size);
+	if (size != grid_size * grid_size){
+		printf("Error: Number of processors must be a square number\n");
+		MPI_Abort(comm, 1);
+	}
+	CartCommunicator cart_comm;
+	MPI_Comm dup_comm;
+	MPI_Comm_dup(comm, &dup_comm);
 	int dims[2] = {grid_size, grid_size};
 	int periods[2] = {0, 0};
 	MPI_Comm comm_cart;
-	MPI_Cart_create(comm, 2, dims, periods, 0, &comm_cart);
-	return comm_cart;
+	int result = MPI_Cart_create(dup_comm, 2, dims, periods, 0, &comm_cart);
+	if (result != MPI_SUCCESS){
+		printf("Error: MPI_Cart_create failed with error code %d\n", result);
+		MPI_Abort(dup_comm, result);
+	}
+	cart_comm.cart_comm = comm_cart;
+	cart_comm.parent_comm = dup_comm;
+	return cart_comm;
 }
 
 
@@ -298,8 +313,8 @@ float* stationary_c_summa(int m, int k, int n, int rank, int size){
 	int grid_size = (int)sqrt(size);
 	int n_processors = size;
 	// Create the grid of processors with MPI
-	MPI_Comm comm = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
-
+	CartCommunicator cart_comm = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+	MPI_Comm comm = cart_comm.cart_comm;
 	// Generate the A and B matrices
 	float *A = NULL;
 	float *B = NULL;
@@ -365,10 +380,39 @@ float* stationary_c_summa(int m, int k, int n, int rank, int size){
 	MPI_Comm_free(&comm);
 	MPI_Comm_free(&row_comm);
 	MPI_Comm_free(&col_comm);
+	MPI_Comm_free(&cart_comm.parent_comm);
 	if (rank == 0){
 		return C;
 	}else{
 		free(C);
 		return NULL;
 	}
+}
+
+bool do_matrices_match(float* A, float* B, int rows, int cols, float tolerance){
+	for (int i = 0; i < rows * cols; i++){
+		if (fabs(A[i] - B[i]) > tolerance){
+			printf("Error: A[%d] = %.2f, B[%d] = %.2f\n", i, A[i], i, B[i]);
+			return false;
+		}
+	}
+	return true;
+}
+
+// Sub position is [row, col]
+void place_submatrix_into_full_matrix(float* full_matrix, float* sub_matrix, int m,
+									  int n, int local_m, int local_n, int* sub_position){
+	int start_row = sub_position[0] * local_m;
+	int start_col = sub_position[1] * local_n;
+	int start_idx = start_row * n + start_col;
+	
+	//displs[i] = p_row * local_rows * k + p_col * local_cols;
+	for (int j = 0; j < local_n; j++){
+		for (int i = 0; i < local_m; i++){
+			int full_idx = start_idx + i * n + j;
+			int sub_idx = i * local_n + j;
+			full_matrix[full_idx] = sub_matrix[sub_idx];
+		}
+	}
+	print_matrix(full_matrix, m, n);
 }
