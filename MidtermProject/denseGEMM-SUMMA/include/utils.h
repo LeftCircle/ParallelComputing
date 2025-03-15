@@ -21,6 +21,7 @@ float* generate_matrix_A(int rows, int cols, int rank);
 float* generate_matrix_B(int rows, int cols, int rank);
 float* generate_matrix(int rows, int cols);
 float* generate_int_matrix(int rows, int cols, int rank);
+float* generate_rank_matrix(int rows, int cols, int rank);
 bool do_matrices_match(float* A, float* B, int rows, int cols, float tolerance);
 
 void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, int k,
@@ -32,6 +33,10 @@ float* scatter_matrix(float* matrix, int rank, int size, int m, int k, MPI_Comm 
 float* init_c_matrix_for_stationary_c(int m, int k, int n, int n_processors, int rank);
 void gather_row_major_matrix(float* local_matrix, float* global_matrix, 
 						int m, int n, int grid_size, int rank, int size, MPI_Comm comm);
+
+void gather_col_blocks_into_root_matrix(float* local_matrix, float* global_matrix,
+					 int m, int n, int grid_size, int rank, int size, int col,
+					 MPI_Comm cart_comm, MPI_Comm row_comm);
 
 void set_send_offset_for_block_scat_gath(int* sendcounts, int* displs, int m,
 										int k, int grid_size, MPI_Comm comm);

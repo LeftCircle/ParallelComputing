@@ -56,7 +56,7 @@ void test_send_custom_data_type(int rank, int size){
 void test_sending_a_to_processors_for_stationary_c_summa(int rank, int size){
 	int m = 4;
 	int k = 4;
-	int n = 8;
+	//int n = 8;
 	int n_processors = 4;
 	int grid_size = (int)sqrt(n_processors);
 
@@ -180,6 +180,275 @@ void test_place_submatrix_into_full_matrix(int rank, int size){
 		free(full_matrix);
 		free(sub_matrix);
 		printf("place_submatrix_into_full_matrix passed\n");
+	}
+}
+
+void test_2d_grid(int rank, int size){
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (size != 4){
+		if (rank == 0){
+			printf("Skipping test_2d_grid. Works with 4 processors\n");
+		}
+		return;
+	}
+	if (rank == 0){
+		printf("Starting test_2d_grid\n");
+	}
+	int grid_size = 2;
+	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+	MPI_Comm comm = cart_com.cart_comm;
+	int coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	if (rank == 0){
+		assert(coords[0] == 0);
+		assert(coords[1] == 0);
+	}
+	if (rank == 1){
+		assert(coords[0] == 0);
+		assert(coords[1] == 1);
+	}
+	if (rank == 2){
+		assert(coords[0] == 1);
+		assert(coords[1] == 0);
+	}
+	if (rank == 3){
+		assert(coords[0] == 1);
+		assert(coords[1] == 1);
+	}
+
+	MPI_Comm_free(&comm);
+	MPI_Comm_free(&cart_com.parent_comm);
+	if (rank == 0){
+		printf("test_2d_grid passed\n");
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+}
+
+// When the processors are split in a 2D grid, check to see that
+// we can gather a matrix across rows into a temp matrix on the 
+// root column. 
+void test_reduce_across_rows(int rank, int size){
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (size != 4){
+		if (rank == 0){
+			printf("Skipping test_gather_across_rows. Works with 4 processors\n");
+		}
+		return;
+	}
+	if (rank == 0){
+		printf("Starting test_gather_across_rows\n");
+	}
+	//printf("Starting test gather\n");
+
+	int m = 4;
+	int n = 8;
+	int grid_size = (int)sqrt(size);
+
+	// Create matrices where each element is the same as their rank
+	float* A = generate_rank_matrix(m, n, rank);
+	float* column_0_gathered_A = NULL;
+	float* expected_gathered_A = NULL;
+
+	// Create the grid of processors with MPI
+	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+	MPI_Comm comm = cart_com.cart_comm;
+
+	// create the processor grid
+	int coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	MPI_Comm row_comm;
+	MPI_Comm_split(comm, coords[0], coords[1], &row_comm);
+
+	// Create the expected gathered A matrix
+	if (coords[0] == 0 & coords[1] == 0){
+		expected_gathered_A = generate_rank_matrix(m, n, 1);
+	} else if (coords[0] == 1 && coords[1] == 0){
+		expected_gathered_A = generate_rank_matrix(m, n, 5);
+	}
+
+	// Now gather the A matrix across the rows
+	if (coords[1] == 0){
+		column_0_gathered_A = (float*)calloc(m * n, sizeof(float));
+	}
+	
+	// Gather across the row!
+	MPI_Reduce(A, column_0_gathered_A, m * n, MPI_FLOAT, MPI_SUM, 0, row_comm);
+
+	if (coords[1] == 0){
+		printf("column_0_gathered_A rank %d\n", rank);
+		print_matrix(column_0_gathered_A, m, n);
+		printf("expected_gathered_A\n");
+		print_matrix(expected_gathered_A, m, n);
+	}
+
+	// Now we need to verify the result
+	if (coords[1] == 0){
+		assert(do_matrices_match(column_0_gathered_A, expected_gathered_A, m, n, 0.001));
+	}
+
+	// Free data
+	if (coords[1] == 0){
+		free(column_0_gathered_A);
+		free(expected_gathered_A);
+	}
+	free(A);
+	MPI_Comm_free(&row_comm);
+	MPI_Comm_free(&comm);
+	MPI_Comm_free(&cart_com.parent_comm);
+	
+	if (rank == 0){
+		printf("test_gather_across_rows passed\n");
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+}
+
+// Rank 0 will have a matrix of dimensions grid_size. 
+// Column 0 will gather a value into a specific column of the matrix
+void test_gather_column(int rank, int size){
+	int grid_size = (int)sqrt(size);
+	float* A = NULL;
+	if (rank == 0){
+		A = (float*)calloc(grid_size, sizeof(float));
+	}
+	// Create the grid of processors with MPI
+	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+	MPI_Comm comm = cart_com.cart_comm;
+	// create the processor grid
+	int coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	MPI_Comm row_comm, col_comm;
+	MPI_Comm_split(comm, coords[0], coords[1], &row_comm);
+	MPI_Comm_split(comm, coords[1], coords[0], &col_comm);
+
+	// Create the column0 communicator
+	MPI_Comm col_0_comm;
+	int color = (coords[1] == 0) ? 0 : MPI_UNDEFINED;
+	MPI_Comm_split(comm, color, coords[0], &col_0_comm);
+
+	float val_to_gather = rank;
+	// Now gather the values in column 0 into A on the root process
+	if (coords[1] == 0){
+		MPI_Gather(&val_to_gather, 1, MPI_FLOAT, A, 1, MPI_FLOAT, 0, col_0_comm);
+	}
+
+	// Now we need to verify the result
+	float* expected_gathered_A = (float*)calloc(grid_size, sizeof(float));
+	for (int i = 0; i < grid_size; i++){
+		expected_gathered_A[i] = i * grid_size;
+	}
+
+	if (coords[1] == 0 && coords[0] == 0){
+		printf("A matrix after gathering column 0\n");
+		print_matrix(A, grid_size, 1);
+		printf("expected_gathered_A\n");
+		print_matrix(expected_gathered_A, grid_size, 1);
+		printf("B matrix after gathering column 0\n");
+		assert(do_matrices_match(A, expected_gathered_A, grid_size, 1, 0.001));
+	}
+
+	if (rank == 0){
+		printf("test_gather_column passed\n");
+	}
+	// Clean up
+	if (rank == 0){
+		free(A);
+	}
+	free(expected_gathered_A);
+	//MPI_Comm_free(&row_comm);
+	//MPI_Comm_free(&col_comm);
+	if (coords[1] == 0){
+		MPI_Comm_free(&col_0_comm);
+	}
+	MPI_Comm_free(&comm);
+	MPI_Comm_free(&cart_com.parent_comm);
+
+}
+
+// Tests gathering a matrix from a 2D grid of processors
+// and placing it into the correct location of the matrix in rank 0
+// ex:
+// given column_to_place = 1 and the matrix is in row 1 of a 2x2 grid, 
+// the matrix should be placed in the bottom right corner of the matrix
+// on p0
+void test_block_gather_column_into_matrix(int rank, int size){
+	int m = 4;
+	int n = 8;
+
+	int grid_size = (int)sqrt(size);
+	int local_m = ceil(m / grid_size);
+	int local_n = ceil(n / grid_size);
+	float* A = NULL;
+	float* local_a = generate_rank_matrix(local_m, local_n, rank + 1);
+
+	if (rank == 0){
+		A = (float*)calloc(m * n, sizeof(float));
+	}
+	// Start by gathering the matrix from column 0 to the root processor
+	float expected_matrix[32] = {
+		1, 1, 1, 1, 0, 0, 0, 0,
+		1, 1, 1, 1, 0, 0, 0, 0,
+		3, 3, 3, 3, 0, 0, 0, 0,
+		3, 3, 3, 3, 0, 0, 0, 0
+	};
+	// Create the grid of processors with MPI
+	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+	MPI_Comm comm = cart_com.cart_comm;
+	// create the processor grid
+	int coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	MPI_Comm row_comm, col_comm;
+	MPI_Comm_split(comm, coords[0], coords[1], &row_comm);
+	MPI_Comm_split(comm, coords[1], coords[0], &col_comm);
+
+	// Now gather the local A matrices into the correct position on the root processor
+	int column_to_place = 0;
+	MPI_Comm col_0_comm;
+	int color = (coords[1] == 0) ? 0 : MPI_UNDEFINED;
+	MPI_Comm_split(comm, color, coords[0], &col_0_comm); 
+	if (coords[1] == 0){
+		gather_col_blocks_into_root_matrix(local_a, A, m, n, grid_size, rank, size,
+					column_to_place, comm, col_0_comm);
+	}
+	// Now we need to verify the result
+	if (rank == 0){
+		printf("A matrix after gathering column %d\n", column_to_place);
+		print_matrix(A, m, n);
+	}
+
+	// Now try the full thing
+	for (int i = 0; i < grid_size; i++){
+		if(coords[1] == 0){
+			gather_col_blocks_into_root_matrix(local_a, A, m, n, grid_size, rank, size,
+					i, comm, col_0_comm);
+		}
+	}
+
+	float full_expected[32] = {
+		1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1,
+		3, 3, 3, 3, 3, 3, 3, 3,
+		3, 3, 3, 3, 3, 3, 3, 3
+	};
+
+	if (rank == 0){
+		printf("A matrix after gathering all columns\n");
+		print_matrix(A, m, n);
+		printf("expected matrix\n");
+		print_matrix(full_expected, m, n);
+		assert(do_matrices_match(A, full_expected, m, n, 0.001));
+	}
+
+	// Clean up
+	if (rank == 0){
+		free(A);
+	}
+	free(local_a);
+	MPI_Comm_free(&row_comm);
+	MPI_Comm_free(&col_comm);
+	MPI_Comm_free(&comm);
+	MPI_Comm_free(&cart_com.parent_comm);
+	if (rank == 0){
+		printf("test_gather_column_into_matrix passed\n");
 	}
 }
 
@@ -314,8 +583,8 @@ void test_stationary_a_summa(int rank, int size){
 		// TODO -> Confirm that this gather is working as expected
 		
 		// Now we need to GatherV the column into the correct block in C
-		float* send_counts = NULL;
-		float* displs = NULL;
+		int* send_counts = NULL;
+		int* displs = NULL;
 		// if (rank == 0){
 		// 	send_counts = (int*)calloc(grid_size, sizeof(int));
 		// 	displs = (int*)calloc(grid_size, sizeof(int));
@@ -330,8 +599,8 @@ void test_stationary_a_summa(int rank, int size){
 			set_send_offset_for_col_block_gatherv(send_counts, displs, i, m, n,
 				grid_size, comm);
 			
-			MPI_Gatherv(row_c_buffer, send_counts, blocktype, C, local_c_rows * local_c_cols,
-					displs, MPI_FLOAT, 0, col_comm);
+			//MPI_Gatherv(row_c_buffer, send_counts, blocktype, C, local_c_rows * local_c_cols,
+			//		displs, MPI_FLOAT, 0, col_comm);
 			free(send_counts);
 			free(displs);
 		}
@@ -424,12 +693,16 @@ int run_tests(int argc, char *argv[]) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	test_place_submatrix_into_full_matrix(rank, size);
-	test_send_custom_data_type(rank, size);
-	test_sending_a_to_processors_for_stationary_c_summa(rank, size);
-	test_stationary_c_summa(rank, size);
-	test_create_cartesian_topology(rank, size);
-	test_stationary_a_summa(rank, size);
+	//test_2d_grid(rank, size);
+	//test_reduce_across_rows(rank, size);
+	// test_gather_column(rank, size);
+	test_block_gather_column_into_matrix(rank, size);
+	// test_place_submatrix_into_full_matrix(rank, size);
+	// test_send_custom_data_type(rank, size);
+	// test_sending_a_to_processors_for_stationary_c_summa(rank, size);
+	// test_stationary_c_summa(rank, size);
+	// test_create_cartesian_topology(rank, size);
+	// test_stationary_a_summa(rank, size);
 
 	MPI_Finalize();
 	if (rank == 0){

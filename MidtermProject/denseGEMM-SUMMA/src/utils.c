@@ -123,6 +123,15 @@ float* generate_int_matrix(int rows, int cols, int rank) {
 	return matrix;
 }
 
+float* generate_rank_matrix(int rows, int cols, int rank) {
+	float* matrix = malloc(rows * cols * sizeof(float));
+	
+	for (int i = 0; i < rows * cols; i++) {
+		matrix[i] = rank;
+	}
+	
+	return matrix;
+}
 
 // /**
 //  * Generates a zero-initialized matrix of given dimensions
@@ -279,15 +288,17 @@ void set_send_offset_for_row_block_gatherv(int* sendcounts, int* displs, int p_c
 	}
 }
 
+// Requires the cart communicator. Cannot use the row communicator here
 void set_send_offset_for_col_block_gatherv(int* sendcounts, int* displs, int p_col,
 										int m, int n, int grid_size, MPI_Comm comm){
 	int local_rows = ceil(m / (float)grid_size);
 	int local_cols = ceil(n / (float)grid_size);
 	for(int i = 0; i < grid_size; i++) {
 		sendcounts[i] = 1;
-		int coords[2];
-		MPI_Cart_coords(comm, i, 2, coords);
-		int p_row = coords[0];
+		//int coords[2];
+		//MPI_Cart_coords(comm, i, 2, coords);
+		//int p_row = coords[0];
+		int p_row = i;
 		displs[i] = p_row * local_rows * n + p_col * local_cols;
 	}
 }
@@ -313,6 +324,44 @@ void gather_row_major_matrix(float* local_matrix, float* global_matrix,
 		printf("Error: MPI_Gatherv failed with error code %d\n", result);
 	}
 
+	// Cleanup
+	MPI_Type_free(&blocktype);
+	free(recvcounts);
+	free(displs);
+}
+
+// Given a column of the global matrix to gather into, gathers the matrix
+// from processors in column 0 into the column i of the global matrix
+void gather_col_blocks_into_root_matrix(float* local_matrix, float* global_matrix,
+	int m, int n, int grid_size, int rank, int size, int col, MPI_Comm cart_comm, MPI_Comm row_comm){
+	
+	int * recvcounts = (int*)malloc(grid_size * sizeof(int));
+	int * displs = (int*)calloc(grid_size, sizeof(int));
+	
+	// Need to send the cart comm
+	set_send_offset_for_col_block_gatherv(recvcounts, displs, col, m, n,
+										grid_size, cart_comm);
+	if (rank == 0){
+		printf("Displacements = \n");
+		for (int i = 0; i < grid_size; i++){
+			printf("%d ", displs[i]);
+		}
+		printf("\n");
+	}
+	// Create MPI datatype for the block
+	MPI_Datatype blocktype = create_block_type(m, n, grid_size);
+
+	// Gather the blocks if column 0
+	int coords[2];
+	MPI_Cart_coords(cart_comm, rank, 2, coords);
+	if (coords[1] == 0){
+		int result = MPI_Gatherv(local_matrix, m / grid_size * n / grid_size,
+				MPI_FLOAT, global_matrix, recvcounts, displs, blocktype,
+				0, row_comm);
+		if (result != MPI_SUCCESS) {
+			printf("Error: MPI_Gatherv failed with error code %d\n", result);
+		}
+	}
 	// Cleanup
 	MPI_Type_free(&blocktype);
 	free(recvcounts);
