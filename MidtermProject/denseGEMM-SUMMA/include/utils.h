@@ -35,6 +35,10 @@ void gather_row_major_matrix(float* local_matrix, float* global_matrix,
 
 void set_send_offset_for_block_scat_gath(int* sendcounts, int* displs, int m,
 										int k, int grid_size, MPI_Comm comm);
+void set_send_offset_for_row_block_gatherv(int* sendcounts, int* displs, int p_col,
+								int m, int n, int grid_size, MPI_Comm comm);
+void set_send_offset_for_col_block_gatherv(int* sendcounts, int* displs, int p_col,
+								int m, int n, int grid_size, MPI_Comm comm);
 
 void print_matrix(float* matrix, int rows, int cols);
 

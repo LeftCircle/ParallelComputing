@@ -167,12 +167,6 @@ void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, 
 
 	set_send_offset_for_block_scat_gath(sendcounts, displs, m, k, grid_size, comm);
 
-	// if (rank == 0){
-	// 	for (int i = 0; i < size; i++){
-	// 		printf("Sendcounts = %d\n", sendcounts[i]);
-	// 		printf("Displacement = %d\n", displs[i]);
-	// 	}
-	// }
 	MPI_Datatype blocktype = create_block_type(m, k, grid_size);
 
 	// Scatter the blocks
@@ -268,6 +262,33 @@ void set_send_offset_for_block_scat_gath(int* sendcounts, int* displs, int m,
 		int p_row = coords[0];
 		int p_col = coords[1];
 		displs[i] = p_row * local_rows * k + p_col * local_cols;
+	}
+}
+
+void set_send_offset_for_row_block_gatherv(int* sendcounts, int* displs, int p_col,
+	 								int m, int n, int grid_size, MPI_Comm comm) {
+	int local_rows = ceil(m / (float)grid_size);
+    int local_cols = ceil(n / (float)grid_size);
+	for(int i = 0; i < grid_size; i++) {
+		sendcounts[i] = 1;
+		int coords[2];
+		MPI_Cart_coords(comm, i, 2, coords);
+		int p_row = coords[0];
+		// We are gathering into the same column, so p_col is constant
+		displs[i] = p_row * local_rows * n + p_col * local_cols;
+	}
+}
+
+void set_send_offset_for_col_block_gatherv(int* sendcounts, int* displs, int p_col,
+										int m, int n, int grid_size, MPI_Comm comm){
+	int local_rows = ceil(m / (float)grid_size);
+	int local_cols = ceil(n / (float)grid_size);
+	for(int i = 0; i < grid_size; i++) {
+		sendcounts[i] = 1;
+		int coords[2];
+		MPI_Cart_coords(comm, i, 2, coords);
+		int p_row = coords[0];
+		displs[i] = p_row * local_rows * n + p_col * local_cols;
 	}
 }
 
