@@ -471,6 +471,15 @@ void test_stationary_a_summa(int rank, int size){
 		C = (float*)calloc(m * n, sizeof(float));
 	}
 
+	if (rank == 0){
+		printf("Pre scatter\n");
+		printf("A matrix \n");
+		print_matrix(A, m, k);
+		printf("B matrix \n");
+		print_matrix(B, k, n);
+		printf("\n\n\n");
+	}
+
 	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
 	MPI_Comm comm = cart_com.cart_comm;
 
@@ -478,9 +487,19 @@ void test_stationary_a_summa(int rank, int size){
 	float* local_a = scatter_matrix(A, rank, size, m, k, comm);
 	float* local_b = scatter_matrix(B, rank, size, k, n, comm);
 
+	if (rank == 0){
+		printf("Pre calculation\n");
+		printf("A matrix \n");
+		print_matrix(A, m, k);
+		printf("B matrix \n");
+		print_matrix(B, k, n);
+		printf("\n\n\n");
+	}
+
 	// create temp B and C matrices
 	// These are the same size as the local_a and local_b matrices
-	
+	int local_a_rows = ceil(m / grid_size);
+	int local_a_cols = ceil(k / grid_size);
 	int local_b_rows = ceil(k / grid_size);
 	int local_b_cols = ceil(n / grid_size);
 	int local_c_rows = ceil(m / grid_size);
@@ -492,13 +511,20 @@ void test_stationary_a_summa(int rank, int size){
 	// Now we need to broadcast B along the rows. 
 	// Let's test just broadcasting B along the rows
 	
-	
 	int coords[2];
 	// Now broadcast the B from column 0 across the rows
 	MPI_Cart_coords(comm, rank, 2, coords);
-	MPI_Comm row_comm, col_comm;
+	MPI_Comm row_comm, col_comm, col_0_comm;
 	MPI_Comm_split(comm, coords[0], coords[1], &row_comm);
 	MPI_Comm_split(comm, coords[1], coords[0], &col_comm);
+	int color = (coords[1] == 0) ? 0 : MPI_UNDEFINED;
+	MPI_Comm_split(comm, color, coords[0], &col_0_comm); 
+
+	// Column 0 will reduce the local_c matrices into a temp matrix
+	float* column_0_gathered_C = NULL;
+	if (coords[1] == 0){
+		column_0_gathered_C = (float*)calloc(local_c_rows * local_c_cols, sizeof(float));
+	}
 
 	// Broadcast B once
 	if (coords[1] == 0){
@@ -546,115 +572,43 @@ void test_stationary_a_summa(int rank, int size){
 	}
 
 	// Now that we know the row broadcast works, let's do the full calculation
-
-	float* rank_0_gather_local_c = NULL;
-	float* row_c_buffer = NULL;
-	if (coords[1] == 0){
-		row_c_buffer = (float*)calloc(local_c_rows * local_c_cols, sizeof(float));
-	}
-	if (rank == 0){
-		rank_0_gather_local_c = (float*)calloc(local_c_cols * local_c_rows, sizeof(float));
-	}
+	int local_c_size = local_c_rows * local_c_cols;
 	for (int i = 0; i < grid_size; i++){
+		// Broadcast the B from column i across the rows
 		if (coords[1] == i){
 			memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
 		}
 		MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, i, row_comm);
 		
-		// Reset the gather matrix on rank 0
-		// if (rank == 0){
-		// 	memset(rank_0_gather_local_c, 0, local_c_rows * local_c_cols * sizeof(float));
-		// }
-		// Clear the local c matrix
-		memset(tmp_c, 0, local_c_rows * local_c_cols * sizeof(float));
+		// Clear the local c matrix and column 0 gathered c matrix
+		memset(tmp_c, 0, local_c_size * sizeof(float));
+		if (coords[1] == 0){
+			memset(column_0_gathered_C, 0, local_c_size * sizeof(float));
+		}
 
 		// All row's have the b from column i now. Perform the matrix multiplication
 		// into their local_c matrices
-		matmul(local_a, tmp_b, tmp_c, local_c_rows, local_c_cols, local_b_rows);
+		matmul(local_a, tmp_b, tmp_c, local_a_rows, local_b_cols, local_a_cols);
 
+		// Reduce onto column 0
+		MPI_Reduce(tmp_c, column_0_gathered_C, local_c_size, MPI_FLOAT, MPI_SUM, 0, row_comm);
 
-		// Gather onto column 0
-		if (coords[1] == 0){
-			row_c_buffer = memset(row_c_buffer, 0, local_c_rows * local_c_cols * sizeof(float));
+		// Now we need to place the gathered local_c matrix into the global C matrix
+		if(coords[1] == 0){
+			gather_col_blocks_into_root_matrix(column_0_gathered_C, C, m, n, grid_size, rank, size,
+					i, comm, col_0_comm);
 		}
-		MPI_Gather(tmp_c, local_c_rows * local_c_cols, MPI_FLOAT, row_c_buffer, local_c_rows * local_c_cols,
-				MPI_FLOAT, 0, row_comm);
-		
-		// TODO -> Confirm that this gather is working as expected
-		
-		// Now we need to GatherV the column into the correct block in C
-		int* send_counts = NULL;
-		int* displs = NULL;
-		// if (rank == 0){
-		// 	send_counts = (int*)calloc(grid_size, sizeof(int));
-		// 	displs = (int*)calloc(grid_size, sizeof(int));
-		// 	set_send_offset_for_col_block_gatherv(send_counts, displs, i, m, n,
-		// 		grid_size, comm);
-		// }
 
-		MPI_Datatype blocktype = create_block_type(m, n, grid_size);
-		if (coords[1] == 0){
-			send_counts = (int*)calloc(grid_size, sizeof(int));
-			displs = (int*)calloc(grid_size, sizeof(int));
-			set_send_offset_for_col_block_gatherv(send_counts, displs, i, m, n,
-				grid_size, comm);
-			
-			//MPI_Gatherv(row_c_buffer, send_counts, blocktype, C, local_c_rows * local_c_cols,
-			//		displs, MPI_FLOAT, 0, col_comm);
-			free(send_counts);
-			free(displs);
-		}
-		MPI_Type_free(&blocktype);
-
-		// Now we need to gather the local C matrices to the global C matrix
-		// We want each row to gather their local_c matrix into the same block of the global C matrix
-		// on processor 0. 
-		// Row 0 will gather into block row 0, column i
-		// Row 1 will gather into block row 1, column i, etc.
-		// int *sendcounts = NULL;
-		// int *displs = NULL;
-		// //if (rank == 0){
-		// // Root of each row accumulates results
-		// if (coords[1] == 0){
-
-		// 	// TODO -> this should be updated to gatherv from the column 0 into
-		// 	// processor 0.
-		// 	sendcounts = (int*)calloc(grid_size,  sizeof(int));
-		// 	displs = (int*)calloc(grid_size, sizeof(int));
-		// 	set_send_offset_for_row_block_gatherv(sendcounts, displs, i, m, n, grid_size, comm);
-		// }
-		// MPI_Datatype blocktype = create_block_type(m, n, grid_size);
-		
-		// if (rank == 0){
-		// 	printf("Pre gatherv\n");
-		// }
-		// MPI_Gatherv(tmp_c, sendcounts, blocktype, C, local_c_rows * local_c_cols, displs,
-		// 		MPI_FLOAT, 0, row_comm);
-		
-		// if (rank == 0){
-		// 	printf("Pre gatherv\n");
-		// }
-		
-		// Now free stuff
-		// MPI_Type_free(&blocktype);
-		// if (rank == 0){
-		// 	free(sendcounts);
-		// 	free(displs);
-		// }
-
-
+		MPI_Barrier(MPI_COMM_WORLD);
 	}
-	// Now we need to place the gathered local_c matrix into the global C matrix
-	// if (rank == 0){
-
-	// 	// If we are to gather this way, it would require gathering each row, placing that into
-	// 	// rank_0_gather_local_c, then placing that into the global C matrix. 
-	// 	// There might be a better way to Gatherv the local_c matrices into the global C matrix
-	// 	assert(false);
-	// }
 
 	// Now we need to verify the result
 	if (rank == 0){
+
+		printf("A matrix \n");
+		print_matrix(A, m, k);
+		printf("B matrix \n");
+		print_matrix(B, k, n);
 		float* expected_c = (float*)calloc(m * n, sizeof(float));
 		matmul(A, B, expected_c, m, n, k);
 		printf("Expected = \n");
@@ -665,18 +619,24 @@ void test_stationary_a_summa(int rank, int size){
 	}
 
 
-
 	// Free data
 	if (rank == 0){
 		free(A);
 		free(B);
 		free(C);
 	}
+	if (coords[1] == 0){
+		free(column_0_gathered_C);
+	}
+	// Free the local matrices
 	free(local_a);
 	free(local_b);
 	free(tmp_b);
 	free(tmp_c);
 
+	if (coords[1] == 0){
+		MPI_Comm_free(&col_0_comm);
+	}
 	MPI_Comm_free(&comm);
 	MPI_Comm_free(&row_comm);
 	MPI_Comm_free(&col_comm);
@@ -696,13 +656,13 @@ int run_tests(int argc, char *argv[]) {
 	//test_2d_grid(rank, size);
 	//test_reduce_across_rows(rank, size);
 	// test_gather_column(rank, size);
-	test_block_gather_column_into_matrix(rank, size);
+	// test_block_gather_column_into_matrix(rank, size);
 	// test_place_submatrix_into_full_matrix(rank, size);
 	// test_send_custom_data_type(rank, size);
 	// test_sending_a_to_processors_for_stationary_c_summa(rank, size);
 	// test_stationary_c_summa(rank, size);
 	// test_create_cartesian_topology(rank, size);
-	// test_stationary_a_summa(rank, size);
+	test_stationary_a_summa(rank, size);
 
 	MPI_Finalize();
 	if (rank == 0){
