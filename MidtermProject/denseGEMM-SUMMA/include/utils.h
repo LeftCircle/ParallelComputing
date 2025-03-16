@@ -52,7 +52,7 @@ void place_submatrix_into_full_matrix(float* full_matrix, float* sub_matrix, int
 
 bool is_in_array(int* array, int size, int value);
 
-void broadcast_matrix_to_column(float* send_buff, float* rcv_buff, int count, int from_rank,
+void broadcast_matrix_to_column(float* send_vals, float* send_buff, float* rcv_buff, int count, int from_rank,
 									 int to_col, int grid_size, int rank, MPI_Comm comm);
 
 //float* generate_int_matrix(int rows, int cols, int rank);

@@ -496,40 +496,63 @@ bool is_in_array(int* array, int size, int value){
 	return false;
 }
 
-void broadcast_matrix_to_column(float* send_buff, float* rcv_buff, int count, int from_rank,
-	int to_col, int grid_size, int rank, MPI_Comm comm){
+void broadcast_matrix_to_column(float* send_vals, float* send_buff, float* rcv_buff,
+	 int count, int from_rank, int to_col, int grid_size, int rank, MPI_Comm comm){
 	
-	// broadcast the matrix to all processors in to_col 
-	int coords[2];
-	MPI_Cart_coords(comm, from_rank, 2, coords);
-	bool is_in_column = (coords[1] == to_col);
-	int n_p_in_group = (is_in_column) ? grid_size : grid_size + 1;
-	int* ranks_for_bcast = (int*)malloc(n_p_in_group * sizeof(int));
-	if (!is_in_column){
-		ranks_for_bcast[0] = from_rank;
-	}
-	// Now add all of the processors in column for the row of this processor
-	for (int k = 0; k < grid_size; k++){
-		ranks_for_bcast[k + 1] = k * grid_size + to_col;
-	}
 	if (rank == from_rank){
-		memcpy(rcv_buff, send_buff, count * sizeof(float));
+		printf("Sending to column %d from rank %d\n", to_col, rank);
+		print_matrix(send_vals, 2, 4);
 	}
+	// Get coordinates of current rank and sender
+	int coords[2];
+    int from_rank_coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	MPI_Cart_coords(comm, from_rank, 2, from_rank_coords);
 
-	if (is_in_array(ranks_for_bcast, n_p_in_group, rank)){
-		MPI_Group world_group;
-		MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-		MPI_Group column_group;
-		MPI_Comm column_comm;
-		MPI_Group_incl(world_group, n_p_in_group, ranks_for_bcast, &column_group);
-		MPI_Comm_create_group(MPI_COMM_WORLD, column_group, 0, &column_comm);
-		MPI_Bcast(rcv_buff, count, MPI_FLOAT, from_rank, column_comm);
-		
-		// Free stuff
-		MPI_Group_free(&column_group);
-		MPI_Comm_free(&column_comm);
-		MPI_Group_free(&world_group);
-	}
-	free(ranks_for_bcast);
-	MPI_Barrier(MPI_COMM_WORLD);
+    
+    // Create communicator for target column
+    MPI_Comm col_comm;
+    int color = (coords[1] == to_col) ? 0 : MPI_UNDEFINED;
+    MPI_Comm_split(comm, color, coords[0], &col_comm);
+    
+    // Only processes in the target column participate
+    if (col_comm != MPI_COMM_NULL) {
+        // If sender is in column, use direct broadcast
+        if (from_rank_coords[1] == to_col) {
+            // Find sender's position in column communicator
+            int bcast_root;
+            int from_coords[2];
+            MPI_Cart_coords(comm, from_rank, 2, from_coords);
+            bcast_root = from_coords[0];  // Row coordinate is rank in column
+			//printf("Bcast root is %d\n", bcast_root);
+            //printf("To col is %d, coords[1] is %d\n", to_col, coords[1]);
+            // Copy data to receive buffer if we're the sender
+            if (rank == from_rank) {
+                memcpy(rcv_buff, send_vals, count * sizeof(float));
+				print_matrix(rcv_buff, 2, 4);
+            }
+            
+            // Broadcast within column
+            MPI_Bcast(rcv_buff, count, MPI_FLOAT, bcast_root, col_comm);
+        }
+        // If sender not in column, rank 0 of column receives and broadcasts
+        else {
+			//printf("Need to receive first\n");
+            if (coords[0] == 0) {  // First process in column
+                MPI_Recv(rcv_buff, count, MPI_FLOAT, from_rank, 0, comm, MPI_STATUS_IGNORE);
+				//printf(" Just received the matrix to send! on rank %d\n", rank);
+				//print_matrix(rcv_buff, 2, 4);
+            }
+            MPI_Bcast(rcv_buff, count, MPI_FLOAT, 0, col_comm);
+        }
+        
+        MPI_Comm_free(&col_comm);
+    }
+    
+    // If this is the sender and not in target column, send to first process in column
+    if (rank == from_rank && coords[1] != to_col) {
+        MPI_Send(send_vals, count, MPI_FLOAT, to_col, 0, comm);
+    }
+    
+    MPI_Barrier(comm);  // Use cart comm instead of WORLD
 }

@@ -474,26 +474,38 @@ void test_bcast_p_along_column(int rank, int size){
 	
 	float* local_a = scatter_matrix(A, rank, size, m, n, comm);
 	float* tmp_a = (float*)malloc(local_m * local_n * sizeof(float));
+	float* send_vals = (float*)malloc(local_m * local_n * sizeof(float));
 	memcpy(tmp_a, local_a, local_m * local_n * sizeof(float));
 
 	// let's test broadcasting A in 00 to all processors in column 0, 
-	broadcast_matrix_to_column(local_a, tmp_a, local_m * local_n, 0, 0, grid_size, rank, comm);
-	//broadcast_matrix_to_column(local_a, tmp_a, local_m * local_n, 0, 1, grid_size, rank, comm);
+	broadcast_matrix_to_column(local_a, send_vals, tmp_a, local_m * local_n, 0, 0, grid_size, rank, comm);
+	
+	MPI_Barrier(MPI_COMM_WORLD);
+	broadcast_matrix_to_column(local_a, send_vals, tmp_a, local_m * local_n, 2, 1, grid_size, rank, comm);
 	float expected[8] = {
 		0, 1, 2, 3,
 		8, 9, 10, 11
 	};
 	// Now we need to verify the result
-	if (coords[1] == 0){
-		printf("tmp_a after broadcast in column 0\n");
-		print_matrix(tmp_a, local_m, local_n);
-	}
-
-	// if (coords[1] == 1){
-	// 	printf("tmp_a after broadcast in column 1\n");
+	// if (coords[1] == 0){
+	// 	printf("tmp_a after broadcast in column 0 rank %d\n", rank);
 	// 	print_matrix(tmp_a, local_m, local_n);
 	// }
-	// now broadcast temp A in column 0 row 1 to all processors in column 1
+	MPI_Barrier(MPI_COMM_WORLD);
+	
+	float col_1_expected[9] = {
+		16, 17, 18, 19,
+		24, 25, 26, 27
+	};
+
+	if (coords[1] == 1){
+		//printf("tmp_a after broadcast in column 1 rank %d\n", rank);
+		//print_matrix(tmp_a, local_m, local_n);
+		assert(do_matrices_match(tmp_a, col_1_expected, local_m, local_n, 0.001));
+	}
+	else if (coords[1] == 0){
+		assert(do_matrices_match(tmp_a, expected, local_m, local_n, 0.001));
+	}
 
 }
 
@@ -532,15 +544,6 @@ void test_stationary_a_summa(int rank, int size){
 	float* local_a = scatter_matrix(A, rank, size, m, k, comm);
 	float* local_b = scatter_matrix(B, rank, size, k, n, comm);
 
-	if (rank == 0){
-		printf("Pre calculation\n");
-		printf("A matrix \n");
-		print_matrix(A, m, k);
-		printf("B matrix \n");
-		print_matrix(B, k, n);
-		printf("\n\n\n");
-	}
-
 	// create temp B and C matrices
 	// These are the same size as the local_a and local_b matrices
 	int local_a_rows = ceil(m / grid_size);
@@ -552,6 +555,11 @@ void test_stationary_a_summa(int rank, int size){
 
 	float* tmp_b = (float*)calloc(local_b_rows * local_b_cols, sizeof(float));
 	float* tmp_c = (float*)calloc(local_c_rows * local_c_cols, sizeof(float));
+	float* send_b = (float*)calloc(local_b_rows * local_b_cols, sizeof(float));
+
+	MPI_Barrier(MPI_COMM_WORLD);
+	// printf("local_b after scatter rank %d\n", rank);
+	// print_matrix(local_b, local_b_rows, local_b_cols);
 
 	// Now we need to broadcast B along the rows. 
 	// Let's test just broadcasting B along the rows
@@ -571,92 +579,78 @@ void test_stationary_a_summa(int rank, int size){
 		column_0_gathered_C = (float*)calloc(local_c_rows * local_c_cols, sizeof(float));
 	}
 
-	// Broadcast B once
-	if (coords[1] == 0){
-		memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
-	}
-	MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, 0, row_comm);
+	// // Broadcast B once
+	// if (coords[1] == 0){
+	// 	memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
+	// }
+	// MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, 0, row_comm);
 
-	// Now confirm that the broadcasted B is correct
-	float p_expected_b_matrix[8];
-	if (coords[0] == 0){
-		p_expected_b_matrix[0] = 0;
-		p_expected_b_matrix[1] = 1;
-		p_expected_b_matrix[2] = 2;
-		p_expected_b_matrix[3] = 3;
-		p_expected_b_matrix[4] = 8;
-		p_expected_b_matrix[5] = 9;
-		p_expected_b_matrix[6] = 10;
-		p_expected_b_matrix[7] = 11;
-	} else if (coords[0] == 1){
-		p_expected_b_matrix[0] = 4;
-		p_expected_b_matrix[1] = 5;
-		p_expected_b_matrix[2] = 6;
-		p_expected_b_matrix[3] = 7;
-		p_expected_b_matrix[4] = 12;
-		p_expected_b_matrix[5] = 13;
-		p_expected_b_matrix[6] = 14;
-		p_expected_b_matrix[7] = 15;
-	}
-	if (rank == 0){
-		printf("p_expected_b_matrix\n");
-		print_matrix(p_expected_b_matrix, 2, 4);
-	}
+	// // Now confirm that the broadcasted B is correct
+	// float p_expected_b_matrix[8];
+	// if (coords[0] == 0){
+	// 	p_expected_b_matrix[0] = 0;
+	// 	p_expected_b_matrix[1] = 1;
+	// 	p_expected_b_matrix[2] = 2;
+	// 	p_expected_b_matrix[3] = 3;
+	// 	p_expected_b_matrix[4] = 8;
+	// 	p_expected_b_matrix[5] = 9;
+	// 	p_expected_b_matrix[6] = 10;
+	// 	p_expected_b_matrix[7] = 11;
+	// } else if (coords[0] == 1){
+	// 	p_expected_b_matrix[0] = 4;
+	// 	p_expected_b_matrix[1] = 5;
+	// 	p_expected_b_matrix[2] = 6;
+	// 	p_expected_b_matrix[3] = 7;
+	// 	p_expected_b_matrix[4] = 12;
+	// 	p_expected_b_matrix[5] = 13;
+	// 	p_expected_b_matrix[6] = 14;
+	// 	p_expected_b_matrix[7] = 15;
+	// }
+	// if (rank == 0){
+	// 	printf("p_expected_b_matrix\n");
+	// 	print_matrix(p_expected_b_matrix, 2, 4);
+	// }
 
-	if (rank == 0 || rank == 1){
-		printf("tmp_b rank %d \n", rank);
-		print_matrix(tmp_b, local_b_rows, local_b_cols);
-		printf("expected_b\n");
-	}
+	// if (rank == 0 || rank == 1){
+	// 	printf("tmp_b rank %d \n", rank);
+	// 	print_matrix(tmp_b, local_b_rows, local_b_cols);
+	// 	printf("expected_b\n");
+	// }
 
-	if (rank == 0 || rank == 1){
-		assert(do_matrices_match(tmp_b, p_expected_b_matrix, local_b_rows, local_b_cols, 0.001));
-	}
-	if (rank == 0){
-		printf("tmp_b broadcasted correctly\n");
-	}
+	// if (rank == 0 || rank == 1){
+	// 	assert(do_matrices_match(tmp_b, p_expected_b_matrix, local_b_rows, local_b_cols, 0.001));
+	// }
+	// if (rank == 0){
+	// 	printf("tmp_b broadcasted correctly\n");
+	// }
 
-	MPI_Group world_group;
-	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
-	// Now that we know the row broadcast works, let's do the full calculation
+
+	//  let's do the full calculation
 	int local_c_size = local_c_rows * local_c_cols;
-	for (int c_col = 0; c_col < grid_size; c_col++){
-		// Broadcast the B from column i across the rows
-		if (coords[1] == c_col){
-			memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
-		}
+	//for (int c_col = 0; c_col < grid_size; c_col++){
+	for (int c_col = 0; c_col < 1; c_col++){
+	// Broadcast the B from column i across the rows
+		// if (coords[1] == c_col){
+		// 	memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
+		// }
 		//MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, i, row_comm);
 		
-		// We need to create communicators so that the temp b matrix in process column
-		// i can be scattered to the process column of the temp_b processor row
-		for (int b_row = 0; b_row < grid_size; b_row++){
-			MPI_Group b_to_a_column_group;
-			MPI_Comm b_to_a_column_comm;
+		for (int i = 0; i < grid_size; i++){
+			// Now we need to broadcast the tmp_b matrix to the processors in the column
+			// of the processor row
+			// Root node is the processor in row j of column i
+			int root = i * grid_size + c_col;
+			// TODO -> check to see if the column that we are sending to is correct
 
-			int n_p_for_b_to_a = grid_size + 1;
-			int* ranks_for_b_to_a = (int*)malloc(n_p_for_b_to_a * sizeof(int));
-			ranks_for_b_to_a[0] = b_row * grid_size + c_col;
-			// Now add all of the processors in column for the row of this processor
-			// ex if this processors row is 1, add all of the processors in column 1
-			for (int k = 0; k < grid_size; k++){
-				ranks_for_b_to_a[k + 1] = k * grid_size + b_row;
-			}
-			if (is_in_array(ranks_for_b_to_a, n_p_for_b_to_a, rank)){
-				printf("rank %d in ranks_for_b_to_a\n", rank);
-				MPI_Group_incl(world_group, n_p_for_b_to_a, ranks_for_b_to_a, &b_to_a_column_group);
-				MPI_Comm_create_group(MPI_COMM_WORLD, b_to_a_column_group, 0, &b_to_a_column_comm);
-				// Now we need to broadcast the tmp_b matrix to the processors in the column
-				// of the processor row
-				// Root node is the processor in row j of column i
-				int root = b_row * grid_size + c_col;
-				MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, root, b_to_a_column_comm);
-			}
-			MPI_Barrier(MPI_COMM_WORLD);
-			// Free stuff
-			MPI_Group_free(&b_to_a_column_group);
-			MPI_Comm_free(&b_to_a_column_comm);
-			free(ranks_for_b_to_a);
+			// The column needs to change with i!!!
+			broadcast_matrix_to_column(local_b, send_b, tmp_b, local_b_rows * local_b_cols,
+				root, c_col, grid_size, rank, comm);
 		}
+
+		// Print the tmp_b matrix to see if it is correct
+		printf("tmp_b after broadcast in column %d rank %d\n", c_col, rank);
+		print_matrix(tmp_b, local_b_rows, local_b_cols);
+		printf("\n\n");
 
 		// Clear the local c matrix and column 0 gathered c matrix
 		memset(tmp_c, 0, local_c_size * sizeof(float));
@@ -731,8 +725,8 @@ int run_tests(int argc, char *argv[]) {
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	//test_2d_grid(rank, size);
-	//test_reduce_across_rows(rank, size);
+	// test_2d_grid(rank, size);
+	// test_reduce_across_rows(rank, size);
 	// test_gather_column(rank, size);
 	// test_block_gather_column_into_matrix(rank, size);
 	// test_place_submatrix_into_full_matrix(rank, size);
@@ -740,9 +734,9 @@ int run_tests(int argc, char *argv[]) {
 	// test_sending_a_to_processors_for_stationary_c_summa(rank, size);
 	// test_stationary_c_summa(rank, size);
 	// test_create_cartesian_topology(rank, size);
-	test_bcast_p_along_column(rank, size);
+	// test_bcast_p_along_column(rank, size);
 	
-	//test_stationary_a_summa(rank, size);
+	test_stationary_a_summa(rank, size);
 
 	MPI_Finalize();
 	if (rank == 0){
