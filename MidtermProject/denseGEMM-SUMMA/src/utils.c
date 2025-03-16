@@ -486,3 +486,50 @@ void place_submatrix_into_full_matrix(float* full_matrix, float* sub_matrix, int
 	}
 	print_matrix(full_matrix, m, n);
 }
+
+bool is_in_array(int* array, int size, int value){
+	for (int i = 0; i < size; i++){
+		if (array[i] == value){
+			return true;
+		}
+	}
+	return false;
+}
+
+void broadcast_matrix_to_column(float* send_buff, float* rcv_buff, int count, int from_rank,
+	int to_col, int grid_size, int rank, MPI_Comm comm){
+	
+	// broadcast the matrix to all processors in to_col 
+	int coords[2];
+	MPI_Cart_coords(comm, from_rank, 2, coords);
+	bool is_in_column = (coords[1] == to_col);
+	int n_p_in_group = (is_in_column) ? grid_size : grid_size + 1;
+	int* ranks_for_bcast = (int*)malloc(n_p_in_group * sizeof(int));
+	if (!is_in_column){
+		ranks_for_bcast[0] = from_rank;
+	}
+	// Now add all of the processors in column for the row of this processor
+	for (int k = 0; k < grid_size; k++){
+		ranks_for_bcast[k + 1] = k * grid_size + to_col;
+	}
+	if (rank == from_rank){
+		memcpy(rcv_buff, send_buff, count * sizeof(float));
+	}
+
+	if (is_in_array(ranks_for_bcast, n_p_in_group, rank)){
+		MPI_Group world_group;
+		MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+		MPI_Group column_group;
+		MPI_Comm column_comm;
+		MPI_Group_incl(world_group, n_p_in_group, ranks_for_bcast, &column_group);
+		MPI_Comm_create_group(MPI_COMM_WORLD, column_group, 0, &column_comm);
+		MPI_Bcast(rcv_buff, count, MPI_FLOAT, from_rank, column_comm);
+		
+		// Free stuff
+		MPI_Group_free(&column_group);
+		MPI_Comm_free(&column_comm);
+		MPI_Group_free(&world_group);
+	}
+	free(ranks_for_bcast);
+	MPI_Barrier(MPI_COMM_WORLD);
+}

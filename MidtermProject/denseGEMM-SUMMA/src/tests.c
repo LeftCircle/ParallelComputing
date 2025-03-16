@@ -452,6 +452,51 @@ void test_block_gather_column_into_matrix(int rank, int size){
 	}
 }
 
+// Given a 2D grid of processors, test to see if we can broadcast a matrix
+// from row r, col c to all processors in column c
+void test_bcast_p_along_column(int rank, int size){
+	int m = 4;
+	int n = 8;
+	float* A = NULL;
+	if (rank == 0){
+		A = generate_int_matrix(m, n, 0);
+	}
+	int grid_size = (int)sqrt(size);
+	int local_m = ceil(m / grid_size);
+	int local_n = ceil(n / grid_size);
+
+	// scatter the A matrix to the processors
+	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
+	MPI_Comm comm = cart_com.cart_comm;
+	// create the processor grid
+	int coords[2];
+	MPI_Cart_coords(comm, rank, 2, coords);
+	
+	float* local_a = scatter_matrix(A, rank, size, m, n, comm);
+	float* tmp_a = (float*)malloc(local_m * local_n * sizeof(float));
+	memcpy(tmp_a, local_a, local_m * local_n * sizeof(float));
+
+	// let's test broadcasting A in 00 to all processors in column 0, 
+	broadcast_matrix_to_column(local_a, tmp_a, local_m * local_n, 0, 0, grid_size, rank, comm);
+	//broadcast_matrix_to_column(local_a, tmp_a, local_m * local_n, 0, 1, grid_size, rank, comm);
+	float expected[8] = {
+		0, 1, 2, 3,
+		8, 9, 10, 11
+	};
+	// Now we need to verify the result
+	if (coords[1] == 0){
+		printf("tmp_a after broadcast in column 0\n");
+		print_matrix(tmp_a, local_m, local_n);
+	}
+
+	// if (coords[1] == 1){
+	// 	printf("tmp_a after broadcast in column 1\n");
+	// 	print_matrix(tmp_a, local_m, local_n);
+	// }
+	// now broadcast temp A in column 0 row 1 to all processors in column 1
+
+}
+
 void test_stationary_a_summa(int rank, int size){
 	if (rank == 0){
 		printf("Testing stationary_a_summa\n");
@@ -571,15 +616,48 @@ void test_stationary_a_summa(int rank, int size){
 		printf("tmp_b broadcasted correctly\n");
 	}
 
+	MPI_Group world_group;
+	MPI_Comm_group(MPI_COMM_WORLD, &world_group);
 	// Now that we know the row broadcast works, let's do the full calculation
 	int local_c_size = local_c_rows * local_c_cols;
-	for (int i = 0; i < grid_size; i++){
+	for (int c_col = 0; c_col < grid_size; c_col++){
 		// Broadcast the B from column i across the rows
-		if (coords[1] == i){
+		if (coords[1] == c_col){
 			memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
 		}
-		MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, i, row_comm);
+		//MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, i, row_comm);
 		
+		// We need to create communicators so that the temp b matrix in process column
+		// i can be scattered to the process column of the temp_b processor row
+		for (int b_row = 0; b_row < grid_size; b_row++){
+			MPI_Group b_to_a_column_group;
+			MPI_Comm b_to_a_column_comm;
+
+			int n_p_for_b_to_a = grid_size + 1;
+			int* ranks_for_b_to_a = (int*)malloc(n_p_for_b_to_a * sizeof(int));
+			ranks_for_b_to_a[0] = b_row * grid_size + c_col;
+			// Now add all of the processors in column for the row of this processor
+			// ex if this processors row is 1, add all of the processors in column 1
+			for (int k = 0; k < grid_size; k++){
+				ranks_for_b_to_a[k + 1] = k * grid_size + b_row;
+			}
+			if (is_in_array(ranks_for_b_to_a, n_p_for_b_to_a, rank)){
+				printf("rank %d in ranks_for_b_to_a\n", rank);
+				MPI_Group_incl(world_group, n_p_for_b_to_a, ranks_for_b_to_a, &b_to_a_column_group);
+				MPI_Comm_create_group(MPI_COMM_WORLD, b_to_a_column_group, 0, &b_to_a_column_comm);
+				// Now we need to broadcast the tmp_b matrix to the processors in the column
+				// of the processor row
+				// Root node is the processor in row j of column i
+				int root = b_row * grid_size + c_col;
+				MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, root, b_to_a_column_comm);
+			}
+			MPI_Barrier(MPI_COMM_WORLD);
+			// Free stuff
+			MPI_Group_free(&b_to_a_column_group);
+			MPI_Comm_free(&b_to_a_column_comm);
+			free(ranks_for_b_to_a);
+		}
+
 		// Clear the local c matrix and column 0 gathered c matrix
 		memset(tmp_c, 0, local_c_size * sizeof(float));
 		if (coords[1] == 0){
@@ -596,7 +674,7 @@ void test_stationary_a_summa(int rank, int size){
 		// Now we need to place the gathered local_c matrix into the global C matrix
 		if(coords[1] == 0){
 			gather_col_blocks_into_root_matrix(column_0_gathered_C, C, m, n, grid_size, rank, size,
-					i, comm, col_0_comm);
+				c_col, comm, col_0_comm);
 		}
 
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -662,7 +740,9 @@ int run_tests(int argc, char *argv[]) {
 	// test_sending_a_to_processors_for_stationary_c_summa(rank, size);
 	// test_stationary_c_summa(rank, size);
 	// test_create_cartesian_topology(rank, size);
-	test_stationary_a_summa(rank, size);
+	test_bcast_p_along_column(rank, size);
+	
+	//test_stationary_a_summa(rank, size);
 
 	MPI_Finalize();
 	if (rank == 0){
