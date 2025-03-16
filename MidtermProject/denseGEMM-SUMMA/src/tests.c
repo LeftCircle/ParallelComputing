@@ -627,8 +627,8 @@ void test_stationary_a_summa(int rank, int size){
 
 	//  let's do the full calculation
 	int local_c_size = local_c_rows * local_c_cols;
-	//for (int c_col = 0; c_col < grid_size; c_col++){
-	for (int c_col = 0; c_col < 1; c_col++){
+	for (int c_col = 0; c_col < grid_size; c_col++){
+	//for (int c_col = 0; c_col < 1; c_col++){
 	// Broadcast the B from column i across the rows
 		// if (coords[1] == c_col){
 		// 	memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
@@ -644,7 +644,7 @@ void test_stationary_a_summa(int rank, int size){
 
 			// The column needs to change with i!!!
 			broadcast_matrix_to_column(local_b, send_b, tmp_b, local_b_rows * local_b_cols,
-				root, c_col, grid_size, rank, comm);
+				root, i, grid_size, rank, comm);
 		}
 
 		// Print the tmp_b matrix to see if it is correct
