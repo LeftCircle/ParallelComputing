@@ -9,14 +9,25 @@
 #include <stdbool.h>
 
 #include "summa_opts.h"
+#define RUN_ACCURACY_CHECK
+//#define UNIT_TESTING
 
 typedef struct{
 	MPI_Comm parent_comm;
 	MPI_Comm cart_comm;
 }CartCommunicator;
 
+typedef struct{
+	double init_time;
+	double comm_time;
+	double comp_time;
+	double total_time;
+} MPITiming;
+
+MPITiming create_mpi_timer();
+
 void matmul(float* A, float* B, float* C, int m, int n, int k);
-void verify_result(float* C_global, float* A, float* B, int m, int n, int k);
+void verify_result(float* C_global, float* C_ref, float* A, float* B, int m, int n, int k);
 float* generate_matrix_A(int rows, int cols, int rank);
 float* generate_matrix_B(int rows, int cols, int rank);
 float* generate_matrix(int rows, int cols);
@@ -55,8 +66,13 @@ bool is_in_array(int* array, int size, int value);
 void broadcast_matrix_to_column(float* send_vals, float* send_buff, float* rcv_buff, int count, int from_rank,
 									 int to_col, int grid_size, int rank, MPI_Comm comm);
 
-//float* generate_int_matrix(int rows, int cols, int rank);
-//Matrix* init_c_matrix_for_stationary_c(int m, int k, int n, int n_processors, int rank);
-//void init_a_matrix_for_stationary_c_summa(Matrix* A, int m, int k, int n_processors, int rank);
+float* stationary_a_summa(int m, int k, int n, int rank, int size);
+
+double time_function(void (*func)(int m, int k, int n, int rank, int size), 
+                    int m, int k, int n, int rank, int size);
+void print_timing_results(double local_time, int rank, const char* func_name);
+
+void run_stationary_a_and_c_for(int m, int k, int n, int rank, int size, bool verify);
+void print_mpi(int rank, const char* message);
 
 #endif

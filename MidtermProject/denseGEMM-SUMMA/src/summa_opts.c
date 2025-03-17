@@ -7,7 +7,7 @@ void print_usage(const char* prog_name) {
     printf("  -n, --cols INT      Number of columns in matrix B\n");
     printf("  -k, --inner INT     Inner dimension (A cols/B rows)\n");
     printf("  -b, --block INT     Block size for tiled operations\n");
-    printf("  -s, --stationary    Algorithm variant ('a' or 'b')\n");
+    printf("  -s, --stationary    Algorithm variant ('a' or 'c')\n");
     printf("  -v, --verbose       Print detailed output\n");
     printf("  -p, --perf         Print performance metrics\n");
     printf("  -h, --help         Print this help\n");
@@ -64,8 +64,8 @@ SummaOpts parse_args(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (opts.stationary != 'a' && opts.stationary != 'b') {
-        printf("Error: Stationary parameter must be 'a' or 'b'\n");
+    if (opts.stationary != 'a' && opts.stationary != 'c') {
+        printf("Error: Stationary parameter must be 'a' or 'c'\n");
         print_usage(argv[0]);
         exit(1);
     }

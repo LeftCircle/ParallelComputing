@@ -516,171 +516,16 @@ void test_stationary_a_summa(int rank, int size){
 	int m = 4;
 	int k = 4;
 	int n = 8;
-	int grid_size = (int)sqrt(size);
-
-	// Create the test matrices
-	float* A = NULL;
-	float* B = NULL;
-	float* C = NULL;
-	if (rank == 0){
-		A = generate_int_matrix(m, k, 0);
-		B = generate_int_matrix(k, n, 0);
-		C = (float*)calloc(m * n, sizeof(float));
-	}
-
-	if (rank == 0){
-		printf("Pre scatter\n");
-		printf("A matrix \n");
-		print_matrix(A, m, k);
-		printf("B matrix \n");
-		print_matrix(B, k, n);
-		printf("\n\n\n");
-	}
-
-	CartCommunicator cart_com = create_cartesian_topology(MPI_COMM_WORLD, grid_size);
-	MPI_Comm comm = cart_com.cart_comm;
-
-	// Distribute A and B chunks to the processors
-	float* local_a = scatter_matrix(A, rank, size, m, k, comm);
-	float* local_b = scatter_matrix(B, rank, size, k, n, comm);
-
-	// create temp B and C matrices
-	// These are the same size as the local_a and local_b matrices
-	int local_a_rows = ceil(m / grid_size);
-	int local_a_cols = ceil(k / grid_size);
-	int local_b_rows = ceil(k / grid_size);
-	int local_b_cols = ceil(n / grid_size);
-	int local_c_rows = ceil(m / grid_size);
-	int local_c_cols = ceil(n / grid_size);
-
-	float* tmp_b = (float*)calloc(local_b_rows * local_b_cols, sizeof(float));
-	float* tmp_c = (float*)calloc(local_c_rows * local_c_cols, sizeof(float));
-	float* send_b = (float*)calloc(local_b_rows * local_b_cols, sizeof(float));
-
-	MPI_Barrier(MPI_COMM_WORLD);
-	// printf("local_b after scatter rank %d\n", rank);
-	// print_matrix(local_b, local_b_rows, local_b_cols);
-
-	// Now we need to broadcast B along the rows. 
-	// Let's test just broadcasting B along the rows
+	float* C = stationary_a_summa(m, k, n, rank, size);
 	
-	int coords[2];
-	// Now broadcast the B from column 0 across the rows
-	MPI_Cart_coords(comm, rank, 2, coords);
-	MPI_Comm row_comm, col_comm, col_0_comm;
-	MPI_Comm_split(comm, coords[0], coords[1], &row_comm);
-	MPI_Comm_split(comm, coords[1], coords[0], &col_comm);
-	int color = (coords[1] == 0) ? 0 : MPI_UNDEFINED;
-	MPI_Comm_split(comm, color, coords[0], &col_0_comm); 
-
-	// Column 0 will reduce the local_c matrices into a temp matrix
-	float* column_0_gathered_C = NULL;
-	if (coords[1] == 0){
-		column_0_gathered_C = (float*)calloc(local_c_rows * local_c_cols, sizeof(float));
-	}
-
-	// // Broadcast B once
-	// if (coords[1] == 0){
-	// 	memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
-	// }
-	// MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, 0, row_comm);
-
-	// // Now confirm that the broadcasted B is correct
-	// float p_expected_b_matrix[8];
-	// if (coords[0] == 0){
-	// 	p_expected_b_matrix[0] = 0;
-	// 	p_expected_b_matrix[1] = 1;
-	// 	p_expected_b_matrix[2] = 2;
-	// 	p_expected_b_matrix[3] = 3;
-	// 	p_expected_b_matrix[4] = 8;
-	// 	p_expected_b_matrix[5] = 9;
-	// 	p_expected_b_matrix[6] = 10;
-	// 	p_expected_b_matrix[7] = 11;
-	// } else if (coords[0] == 1){
-	// 	p_expected_b_matrix[0] = 4;
-	// 	p_expected_b_matrix[1] = 5;
-	// 	p_expected_b_matrix[2] = 6;
-	// 	p_expected_b_matrix[3] = 7;
-	// 	p_expected_b_matrix[4] = 12;
-	// 	p_expected_b_matrix[5] = 13;
-	// 	p_expected_b_matrix[6] = 14;
-	// 	p_expected_b_matrix[7] = 15;
-	// }
-	// if (rank == 0){
-	// 	printf("p_expected_b_matrix\n");
-	// 	print_matrix(p_expected_b_matrix, 2, 4);
-	// }
-
-	// if (rank == 0 || rank == 1){
-	// 	printf("tmp_b rank %d \n", rank);
-	// 	print_matrix(tmp_b, local_b_rows, local_b_cols);
-	// 	printf("expected_b\n");
-	// }
-
-	// if (rank == 0 || rank == 1){
-	// 	assert(do_matrices_match(tmp_b, p_expected_b_matrix, local_b_rows, local_b_cols, 0.001));
-	// }
-	// if (rank == 0){
-	// 	printf("tmp_b broadcasted correctly\n");
-	// }
-
-
-	//  let's do the full calculation
-	int local_c_size = local_c_rows * local_c_cols;
-	for (int c_col = 0; c_col < grid_size; c_col++){
-	//for (int c_col = 0; c_col < 1; c_col++){
-	// Broadcast the B from column i across the rows
-		// if (coords[1] == c_col){
-		// 	memcpy(tmp_b, local_b, local_b_rows * local_b_cols * sizeof(float));
-		// }
-		//MPI_Bcast(tmp_b, local_b_rows * local_b_cols, MPI_FLOAT, i, row_comm);
-		
-		for (int i = 0; i < grid_size; i++){
-			// Now we need to broadcast the tmp_b matrix to the processors in the column
-			// of the processor row
-			// Root node is the processor in row j of column i
-			int root = i * grid_size + c_col;
-			// TODO -> check to see if the column that we are sending to is correct
-
-			// The column needs to change with i!!!
-			broadcast_matrix_to_column(local_b, send_b, tmp_b, local_b_rows * local_b_cols,
-				root, i, grid_size, rank, comm);
-		}
-
-		// Print the tmp_b matrix to see if it is correct
-		printf("tmp_b after broadcast in column %d rank %d\n", c_col, rank);
-		print_matrix(tmp_b, local_b_rows, local_b_cols);
-		printf("\n\n");
-
-		// Clear the local c matrix and column 0 gathered c matrix
-		memset(tmp_c, 0, local_c_size * sizeof(float));
-		if (coords[1] == 0){
-			memset(column_0_gathered_C, 0, local_c_size * sizeof(float));
-		}
-
-		// All row's have the b from column i now. Perform the matrix multiplication
-		// into their local_c matrices
-		matmul(local_a, tmp_b, tmp_c, local_a_rows, local_b_cols, local_a_cols);
-
-		// Reduce onto column 0
-		MPI_Reduce(tmp_c, column_0_gathered_C, local_c_size, MPI_FLOAT, MPI_SUM, 0, row_comm);
-
-		// Now we need to place the gathered local_c matrix into the global C matrix
-		if(coords[1] == 0){
-			gather_col_blocks_into_root_matrix(column_0_gathered_C, C, m, n, grid_size, rank, size,
-				c_col, comm, col_0_comm);
-		}
-
-		MPI_Barrier(MPI_COMM_WORLD);
-	}
-
 	// Now we need to verify the result
 	if (rank == 0){
-
+		float* A = generate_int_matrix(m, k, 0);
+		float* B = generate_int_matrix(k, n, 0);
 		printf("A matrix \n");
-		print_matrix(A, m, k);
-		printf("B matrix \n");
-		print_matrix(B, k, n);
+		//print_matrix(A, m, k);
+		//printf("B matrix \n");
+		//print_matrix(B, k, n);
 		float* expected_c = (float*)calloc(m * n, sizeof(float));
 		matmul(A, B, expected_c, m, n, k);
 		printf("Expected = \n");
@@ -688,35 +533,67 @@ void test_stationary_a_summa(int rank, int size){
 		print_matrix(C, m, n);
 		assert(do_matrices_match(C, expected_c, m, n, 0.001));
 		free(expected_c);
-	}
-
-
-	// Free data
-	if (rank == 0){
 		free(A);
 		free(B);
 		free(C);
 	}
-	if (coords[1] == 0){
-		free(column_0_gathered_C);
-	}
-	// Free the local matrices
-	free(local_a);
-	free(local_b);
-	free(tmp_b);
-	free(tmp_c);
-
-	if (coords[1] == 0){
-		MPI_Comm_free(&col_0_comm);
-	}
-	MPI_Comm_free(&comm);
-	MPI_Comm_free(&row_comm);
-	MPI_Comm_free(&col_comm);
-	MPI_Comm_free(&cart_com.parent_comm);
 
 	if (rank == 0){
 		printf("stationary_a_summa passed\n");
 	}
+}
+
+void test_small_matrices(int rank, int size){
+	int square_n = 4096;
+
+	// double start_time, end_time;
+	// if(rank == 0){
+	// 	printf("Verifying stationary A square matrices\n");
+	// 	double start_time = MPI_Wtime();
+	// }
+	// float* C_s0 = stationary_a_summa(square_n_0, square_n_0, square_n_0, rank, size);
+	// if (rank == 0){
+	// 	end_time = MPI_Wtime();
+	// 	#ifdef RUN_ACCURACY_CHECK
+	// 	printf("Time taken for stationary_a_summa with n = %d: %f\n", square_n_0, end_time - start_time);
+	// 	float* A = generate_matrix_A(square_n_0, square_n_0, rank);
+	// 	float* B = generate_matrix_B(square_n_0, square_n_0, rank);
+	// 	verify_result(C_s0, A, B, square_n_0, square_n_0, square_n_0);
+	// 	#endif
+	// 	free(C_s0);
+	// }
+	// MPI_Barrier(MPI_COMM_WORLD);
+	print_mpi(rank, "SQUARE \n");
+	run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, true);
+	// for(int i = 2; i < 6; i++){
+	// 	run_stationary_a_and_c_for(square_n * i, square_n * i, square_n * i, rank, size, false);
+	// }
+
+	// Now tall and skinny
+	print_mpi(rank, "TALL AND SKINNY \n");
+	int m = 4096;
+	int k = 128;
+	int n = 4096;
+
+	run_stationary_a_and_c_for(m, k, n, rank, size, true);
+	// for(int i = 2; i < 6; i++){
+	// 	run_stationary_a_and_c_for(m * i, k * i, n * i, rank, size, false);
+	// }
+
+	// Now wide and short
+	print_mpi(rank, "WIDE AND SHORT \n");
+	m = 128;
+	k = 4096;
+	n = 4096;
+
+	run_stationary_a_and_c_for(m, k, n, rank, size, true);
+	// for(int i = 2; i < 6; i++){
+	// 	run_stationary_a_and_c_for(m * i, k * i, n * i, rank, size, false);
+	// }
+
+	
+
+	
 }
 
 
@@ -736,7 +613,8 @@ int run_tests(int argc, char *argv[]) {
 	// test_create_cartesian_topology(rank, size);
 	// test_bcast_p_along_column(rank, size);
 	
-	test_stationary_a_summa(rank, size);
+	// test_stationary_a_summa(rank, size);
+	test_small_matrices(rank, size);
 
 	MPI_Finalize();
 	if (rank == 0){
