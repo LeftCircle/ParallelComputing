@@ -162,13 +162,12 @@ void init_a_matrix_for_stationary_c_summa(float* A, int m, int k,int n_processor
 
 void scatter_row_major_matrix(float* global_matrix, float* local_matrix, int m, int k,
 						      int grid_size, int rank, int size, MPI_Comm comm) {
-	// After local_a allocation, replace the commented scattering code with:
 	int *sendcounts = (int*)malloc(size * sizeof(int));
 	int *displs = (int*)malloc(size * sizeof(int));
 	
-	int local_a_rows = m / grid_size;
-	int local_a_cols = k / grid_size;
-	int blocksize = local_a_rows * local_a_cols;  // Size of each block
+	int local_rows = m / grid_size;
+	int local_cols = k / grid_size;
+	int blocksize = local_rows * local_cols;  // Size of each block
 
 	int coords[2];
 
