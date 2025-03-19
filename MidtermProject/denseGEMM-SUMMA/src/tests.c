@@ -543,40 +543,28 @@ void test_stationary_a_summa(int rank, int size){
 	}
 }
 
-void test_small_matrices(int rank, int size){
+void test_small_matrices(int rank, int size, bool to_verify){
 	int square_n = 4096;
 
-	// double start_time, end_time;
-	// if(rank == 0){
-	// 	printf("Verifying stationary A square matrices\n");
-	// 	double start_time = MPI_Wtime();
-	// }
-	// float* C_s0 = stationary_a_summa(square_n_0, square_n_0, square_n_0, rank, size);
-	// if (rank == 0){
-	// 	end_time = MPI_Wtime();
-	// 	#ifdef RUN_ACCURACY_CHECK
-	// 	printf("Time taken for stationary_a_summa with n = %d: %f\n", square_n_0, end_time - start_time);
-	// 	float* A = generate_matrix_A(square_n_0, square_n_0, rank);
-	// 	float* B = generate_matrix_B(square_n_0, square_n_0, rank);
-	// 	verify_result(C_s0, A, B, square_n_0, square_n_0, square_n_0);
-	// 	#endif
-	// 	free(C_s0);
-	// }
-	// MPI_Barrier(MPI_COMM_WORLD);
 	print_mpi(rank, "SQUARE \n");
-	run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, true);
-	// for(int i = 2; i < 6; i++){
+	run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, to_verify);
+	// for(int i = 1; i < 5; i++){
+	// 	square_n = pow(2, 12 + i);
 	// 	run_stationary_a_and_c_for(square_n * i, square_n * i, square_n * i, rank, size, false);
 	// }
 
+	//square_n = pow(2, 15);
+	//run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, false);
 	// Now tall and skinny
 	print_mpi(rank, "TALL AND SKINNY \n");
 	int m = 4096;
 	int k = 128;
 	int n = 4096;
 
-	run_stationary_a_and_c_for(m, k, n, rank, size, true);
-	// for(int i = 2; i < 6; i++){
+	run_stationary_a_and_c_for(m, k, n, rank, size, to_verify);
+	// for(int i = 1; i < 5; i++){
+	// 	m = pow(2, 12 + i);
+	// 	n = m;
 	// 	run_stationary_a_and_c_for(m * i, k * i, n * i, rank, size, false);
 	// }
 
@@ -586,13 +574,12 @@ void test_small_matrices(int rank, int size){
 	k = 4096;
 	n = 4096;
 
-	run_stationary_a_and_c_for(m, k, n, rank, size, true);
+	run_stationary_a_and_c_for(m, k, n, rank, size, to_verify);
 	// for(int i = 2; i < 6; i++){
+	// 	k = pow(2, 12 + 1);
+	// 	n = k;
 	// 	run_stationary_a_and_c_for(m * i, k * i, n * i, rank, size, false);
 	// }
-
-	
-
 	
 }
 
@@ -614,7 +601,7 @@ int run_tests(int argc, char *argv[]) {
 	// test_bcast_p_along_column(rank, size);
 	
 	// test_stationary_a_summa(rank, size);
-	test_small_matrices(rank, size);
+	test_small_matrices(rank, size, true);
 
 	MPI_Finalize();
 	if (rank == 0){

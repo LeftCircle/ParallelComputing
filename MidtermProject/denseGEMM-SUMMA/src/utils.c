@@ -774,6 +774,7 @@ float* stationary_a_summa(int m, int k, int n, int rank, int size){
 	free(local_b);
 	free(tmp_b);
 	free(tmp_c);
+	free(send_b);
 
 	if (coords[1] == 0){
 		MPI_Comm_free(&col_0_comm);
@@ -838,10 +839,10 @@ void run_stationary_a_and_c_for(int m, int k, int n, int rank, int size, bool ve
 	MPI_Barrier(MPI_COMM_WORLD);
 	if (rank == 0){
 		if (verify){
+			double start_time = MPI_Wtime();
 			float* A = generate_matrix_A(m, k, rank);
 			float* B = generate_matrix_B(k, n, rank);
 			float* C_ref = (float*)calloc(m * n, sizeof(float));
-			double start_time = MPI_Wtime();
 			matmul(A, B, C_ref, m, n, k);
 			double end_time = MPI_Wtime();
 			printf("Time for reference matrix multiplication: %f\n", end_time - start_time);

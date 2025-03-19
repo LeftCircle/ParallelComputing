@@ -1,0 +1,230 @@
+mpirun -np 4 ./summa -t -w
+SQUARE 
+
+Profiling times for stationary_A_summa
+m = 16384, k = 16384, n = 16384 with grid size 2
+Initialization time: 7.613140
+Communication time: 1.303080
+Computation time: 427.225313
+Total time: 436.150462
+
+
+Profiling times for stationary_c_summa
+m = 16384, k = 16384, n = 16384 with grid size 2
+Initialization time: 7.799295
+Communication time: 0.981341
+Computation time: 439.906377
+Total time: 448.687027
+All tests passed
+
+-------------------------------------------------------------------------------------------------------
+
+Profiling times for stationary_A_summa
+m = 4096, k = 4096, n = 4096 with grid size 8
+Initialization time: 0.457429
+Communication time: 0.385106
+Computation time: 0.213669
+Total time: 1.057225
+
+
+Profiling times for stationary_c_summa
+m = 4096, k = 4096, n = 4096 with grid size 8
+Initialization time: 0.457476
+Communication time: 0.090043
+Computation time: 0.132033
+Total time: 0.679648
+Time for reference matrix multiplication: 11.942035
+Verifying stationary A:
+
+Verification Results:
+  Total Elements: 16777216
+  Errors: 16084989 (95.87%)
+  Max Error: 4.882812e-03 at position [20,3987] (index 85907)
+  Average Error: 6.836840e-04
+
+Verifying stationary C:
+
+Verification Results:
+  Total Elements: 16777216
+  Errors: 0 (0.00%)
+  Max Error: 0.000000e+00 at position [-1,-1] (index -1)
+  Average Error: 0.000000e+00
+Profiling times for stationary_A_summa
+m = 8192, k = 8192, n = 8192 with grid size 8
+Initialization time: 1.825031
+Communication time: 0.718010
+Computation time: 1.561413
+Total time: 4.107492
+
+
+Profiling times for stationary_c_summa
+m = 8192, k = 8192, n = 8192 with grid size 8
+Initialization time: 1.827160
+Communication time: 0.533297
+Computation time: 0.859547
+Total time: 3.220223
+
+Profiling times for stationary_A_summa
+m = 32768, k = 32768, n = 32768 with grid size 8
+Initialization time: 29.203158
+Communication time: 7.495266
+Computation time: 327.228023
+Total time: 363.944317
+
+
+Profiling times for stationary_c_summa
+m = 32768, k = 32768, n = 32768 with grid size 8
+Initialization time: 29.170259
+Communication time: 6.783064
+Computation time: 336.779995
+Total time: 372.733469
+
+
+TALL AND SKINNY 
+
+Profiling times for stationary_A_summa
+m = 4096, k = 128, n = 4096 with grid size 8
+Initialization time: 0.014272
+Communication time: 0.199716
+Computation time: 0.009378
+Total time: 0.223467
+
+
+Profiling times for stationary_c_summa
+m = 4096, k = 128, n = 4096 with grid size 8
+Initialization time: 0.013830
+Communication time: 0.049076
+Computation time: 0.006430
+Total time: 0.069418
+Time for reference matrix multiplication: 0.232449
+Verifying stationary A:
+
+Verification Results:
+  Total Elements: 16777216
+  Errors: 1011838 (6.03%)
+  Max Error: 3.051758e-05 at position [271,2430] (index 1112446)
+  Average Error: 4.033506e-06
+
+Verifying stationary C:
+
+Verification Results:
+  Total Elements: 16777216
+  Errors: 0 (0.00%)
+  Max Error: 0.000000e+00 at position [-1,-1] (index -1)
+  Average Error: 0.000000e+00
+Profiling times for stationary_A_summa
+m = 8192, k = 128, n = 8192 with grid size 8
+Initialization time: 0.027661
+Communication time: 0.136248
+Computation time: 0.021732
+Total time: 0.185730
+
+
+Profiling times for stationary_c_summa
+m = 8192, k = 128, n = 8192 with grid size 8
+Initialization time: 0.027790
+Communication time: 0.074744
+Computation time: 0.017508
+Total time: 0.120121
+Profiling times for stationary_A_summa
+m = 16384, k = 128, n = 16384 with grid size 8
+Initialization time: 0.055424
+Communication time: 0.580115
+Computation time: 0.144716
+Total time: 0.781381
+
+
+Profiling times for stationary_c_summa
+m = 16384, k = 128, n = 16384 with grid size 8
+Initialization time: 0.055419
+Communication time: 0.275998
+Computation time: 0.071371
+Total time: 0.402888
+Profiling times for stationary_A_summa
+m = 32768, k = 128, n = 32768 with grid size 8
+Initialization time: 0.115703
+Communication time: 2.187936
+Computation time: 0.538208
+Total time: 2.844093
+
+
+Profiling times for stationary_c_summa
+m = 32768, k = 128, n = 32768 with grid size 8
+Initialization time: 0.115397
+Communication time: 1.049098
+Computation time: 0.351181
+Total time: 1.515884
+WIDE AND SHORT 
+
+Profiling times for stationary_A_summa
+m = 128, k = 4096, n = 4096 with grid size 8
+Initialization time: 0.235326
+Communication time: 0.150913
+Computation time: 0.007837
+Total time: 0.394767
+
+
+Profiling times for stationary_c_summa
+m = 128, k = 4096, n = 4096 with grid size 8
+Initialization time: 0.235638
+Communication time: 0.129340
+Computation time: 0.006615
+Total time: 0.371677
+Time for reference matrix multiplication: 0.594037
+Verifying stationary A:
+
+Verification Results:
+  Total Elements: 524288
+  Errors: 502484 (95.84%)
+  Max Error: 4.882812e-03 at position [20,3987] (index 85907)
+  Average Error: 6.987316e-04
+
+Verifying stationary C:
+
+Verification Results:
+  Total Elements: 524288
+  Errors: 0 (0.00%)
+  Max Error: 0.000000e+00 at position [-1,-1] (index -1)
+  Average Error: 0.000000e+00
+Profiling times for stationary_A_summa
+m = 128, k = 8192, n = 8192 with grid size 8
+Initialization time: 0.926884
+Communication time: 0.219242
+Computation time: 0.028447
+Total time: 1.175671
+
+
+Profiling times for stationary_c_summa
+m = 128, k = 8192, n = 8192 with grid size 8
+Initialization time: 0.926529
+Communication time: 0.183890
+Computation time: 0.022757
+Total time: 1.133257
+Profiling times for stationary_A_summa
+m = 128, k = 8192, n = 8192 with grid size 8
+Initialization time: 0.926703
+Communication time: 0.208954
+Computation time: 0.030157
+Total time: 1.166899
+
+
+Profiling times for stationary_c_summa
+m = 128, k = 8192, n = 8192 with grid size 8
+Initialization time: 0.926618
+Communication time: 0.182675
+Computation time: 0.022876
+Total time: 1.132247
+Profiling times for stationary_A_summa
+m = 128, k = 8192, n = 8192 with grid size 8
+Initialization time: 0.926413
+Communication time: 0.213607
+Computation time: 0.030538
+Total time: 1.171633
+
+
+Profiling times for stationary_c_summa
+m = 128, k = 8192, n = 8192 with grid size 8
+Initialization time: 0.926331
+Communication time: 0.182600
+Computation time: 0.022894
+Total time: 1.132421
