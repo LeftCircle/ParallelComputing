@@ -548,10 +548,10 @@ void test_small_matrices(int rank, int size, bool to_verify){
 
 	print_mpi(rank, "SQUARE \n");
 	run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, to_verify);
-	// for(int i = 1; i < 5; i++){
-	// 	square_n = pow(2, 12 + i);
-	// 	run_stationary_a_and_c_for(square_n * i, square_n * i, square_n * i, rank, size, false);
-	// }
+	for(int i = 1; i < 5; i++){
+		square_n = pow(2, 12 + i);
+		run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, false);
+	}
 
 	//square_n = pow(2, 15);
 	//run_stationary_a_and_c_for(square_n, square_n, square_n, rank, size, false);
@@ -562,11 +562,11 @@ void test_small_matrices(int rank, int size, bool to_verify){
 	int n = 4096;
 
 	run_stationary_a_and_c_for(m, k, n, rank, size, to_verify);
-	// for(int i = 1; i < 5; i++){
-	// 	m = pow(2, 12 + i);
-	// 	n = m;
-	// 	run_stationary_a_and_c_for(m * i, k * i, n * i, rank, size, false);
-	// }
+	for(int i = 1; i < 5; i++){
+		m = pow(2, 12 + i);
+		n = m;
+		run_stationary_a_and_c_for(m, k, n, rank, size, false);
+	}
 
 	// Now wide and short
 	print_mpi(rank, "WIDE AND SHORT \n");
@@ -575,11 +575,11 @@ void test_small_matrices(int rank, int size, bool to_verify){
 	n = 4096;
 
 	run_stationary_a_and_c_for(m, k, n, rank, size, to_verify);
-	// for(int i = 2; i < 6; i++){
-	// 	k = pow(2, 12 + 1);
-	// 	n = k;
-	// 	run_stationary_a_and_c_for(m * i, k * i, n * i, rank, size, false);
-	// }
+	for(int i = 1; i < 5; i++){
+		k = pow(2, 12 + i);
+		n = k;
+		run_stationary_a_and_c_for(m, k, n, rank, size, false);
+	}
 	
 }
 

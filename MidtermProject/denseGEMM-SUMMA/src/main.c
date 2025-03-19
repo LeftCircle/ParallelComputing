@@ -65,8 +65,6 @@ int main(int argc, char *argv[]) {
 		return 0;
 	}
 
-	// Initialize the MPI environment
-	// TODO: Initialize MPI
 	int rank, size;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -80,9 +78,6 @@ int main(int argc, char *argv[]) {
 
 	SummaOpts opts;
 	opts = parse_args(argc, argv);
-	// Broadcast options to all processes
-	// TODO: Broadcast the parsed options to all processes
-	// Don't all processes already get the parsed options?
 
 	// Check if matrix dimensions are compatible with grid size
 	if (opts.m % grid_size != 0 || opts.n % grid_size != 0 ||
@@ -102,12 +97,18 @@ int main(int argc, char *argv[]) {
 	printf("Verbose: %s\n", opts.verbose ? "true" : "false");
 
 	// Call the appropriate SUMMA function based on algorithm variant
-	if (opts.stationary == 'A') {
-		summa_stationary_a(opts.m, opts.n, opts.k, size, rank);
-	} else if (opts.stationary == 'B') {
-		summa_stationary_b(opts.m, opts.n, opts.k, size, rank);
+	if (opts.stationary == 'a') {
+		float* C = stationary_a_summa(opts.m, opts.k, opts.n, rank, size);
+		if (rank == 0){
+			free(C);
+		}
+	} else if (opts.stationary == 'c') {
+		float* C= stationary_c_summa(opts.m, opts.k, opts.n, rank, size);
+		if (rank == 0){
+			free(C);
+		}
 	} else {
-		printf("Error: Unknown stationary option '%c'. Use 'A' or 'B'.\n",
+		printf("Error: Unknown stationary option '%c'. Use 'a' or 'c'.\n",
 				opts.stationary);
 		return 1;
 	}
