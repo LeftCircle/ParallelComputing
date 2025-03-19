@@ -3,6 +3,7 @@ m = 4096, k = 4096, n = 4096 with grid size 8
 Initialization time: 0.457305
 Communication time: 0.089920
 Computation time: 0.126968
+Total time: 0.674261
 stationary_c_summa
 m = 8192, k = 8192, n = 8192 with grid size 8
 Initialization time: 1.826609
