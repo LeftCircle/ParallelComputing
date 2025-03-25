@@ -12,15 +12,18 @@
 // contains __m128 data type
 #include <xmmintrin.h>
 
-#ifdef _OPENMP
 #include <omp.h>
-#endif
+
 
 #include "simd_funcs.h"
 #include "test_funcs.h"
 #include "stencil_funcs.h"
+#include "matrix_funcs.h"
+
+#define PROFILE
 
 void run_tests();
+void run_profile_tests();
 
 
 #endif

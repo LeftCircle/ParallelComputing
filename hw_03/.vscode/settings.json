@@ -4,7 +4,9 @@
     "files.associations": {
 		"*.cpp": "cpp",
 		"vector": "cpp",
-		"new": "cpp"
+		"new": "cpp",
+		"chrono": "cpp",
+		"ostream": "cpp"
 	},
     "C_Cpp.intelliSenseEngine": "default"
 }
