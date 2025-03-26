@@ -25,16 +25,20 @@ float get_stencil_average_from(const float* vec, int left_boundary, int right_bo
 float get_stencil_average_from_mm128(const float* vec, int left_boundary, int right_boundary, int x);
 
 void stencil_2D_basic(int N, int K, float* vec);
+void stencil_2D_simd(int N, int K, float* __restrict__ vec, const float* __restrict__ trans);
 
 template<int B>
 void stencil_2D_blocked(int N, int K, float* __restrict__ vec, float* __restrict__ trans);
 template<int B>
 void stencil_2D_blocked_simd(int N, int K, float* __restrict__ vec, const float* __restrict__ trans);
-
+template<int B>
+void _average_2D_stencil_blocked(int N, int K, int start_x, int start_y, const float* __restrict__ vec,
+	 							const float* __restrict__ trans, float* __restrict__ out);
 
 void _average_1D_stencil(int N, int K, const float* vec, float* tmp);
-void _average_2D_stencil(int N, int K, int start_x, int start_y, int block_size, const float* __restrict__ vec,
-	 					const float* __restrict__ trans, float* __restrict__ out);
+
+void _average_2D_stencil_point(int N, int K, int x, int y, const float* __restrict__ vec,
+						 	   const float* __restrict__ trans, float* __restrict__ out);
 // void _average_1D_stencil_mm128(int N, int K, const float* vec, float* tmp);
 
 #endif

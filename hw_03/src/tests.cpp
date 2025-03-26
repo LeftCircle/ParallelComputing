@@ -156,6 +156,7 @@ void test_2d_simd_stencil(){
 	const int N = 4;
 	const int K = 2;
 	float* vec = new(std::align_val_t(64)) float[N*N];
+	float* b_vec = new(std::align_val_t(64)) float[N*N];
 	float* expected = new(std::align_val_t(64)) float[N*N];
 	#pragma omp parallel for
 	for (int i = 0; i < N*N; i++){
@@ -163,6 +164,7 @@ void test_2d_simd_stencil(){
 		float val = i % N;
 		vec[i] = val;
 		expected[i] = val;
+		b_vec[i] = val;
 	}
 	print_matrix(N, N, vec);
 	
@@ -170,11 +172,14 @@ void test_2d_simd_stencil(){
 	printf("Expected\n");
 	print_matrix(N, N, expected);
 	float* trans = transpose(N, vec);
-	stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, vec, trans);
+	stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, b_vec, trans);
+	stencil_2D_simd(N, K, vec, trans);
 	printf("Actual\n");
 	print_matrix(N, N, vec);
 
-	//assert_vectors_match(N*N, vec, expected);
+	assert_vectors_match(N*N, vec, expected);
+	assert_vectors_match(N*N, b_vec, expected);
+	::operator delete[] (b_vec, std::align_val_t(64));
 	::operator delete[] (vec, std::align_val_t(64));
 	::operator delete[] (expected, std::align_val_t(64));
 	::operator delete[] (trans, std::align_val_t(64));
