@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-float* transpose(int N, float* src);
+float* transpose(int N, const float* src);
 void print_matrix(int N, int M, float* matrix);
 
 

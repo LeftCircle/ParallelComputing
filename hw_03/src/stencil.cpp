@@ -93,12 +93,7 @@ void blocked_solution(int N, int K, float* __restrict__ vec, float* __restrict__
 
 template<int B>
 void blocked_simd(int N, int K, float* __restrict__ vec, float* __restrict__ trans) {
-	// Divisibility contraints
-	if (N % B != 0) {
-		cout << "N must be divisible through B" << endl;
-		exit(-1);
-	}
-	
+	stencil_2D_blocked_simd<B>(N, K, vec, trans);
 }
 /**********************/
 
@@ -108,7 +103,7 @@ void blocked_simd(int N, int K, float* __restrict__ vec, float* __restrict__ tra
 
 template<int B>
 void blocked_simd_omp(int N, int K, float* __restrict__ vec, float* __restrict__ trans) {
-	// To be filled    
+	stencil_2D_b_simd_openmp<B>(N, K, vec, trans);
 }
 
 /**********************/
@@ -141,45 +136,44 @@ int main(int argc, char* argv[]) {
 	cout << "N: " << N << ", K: " << K << ", B: " << BLOCK_SIZE << endl;
 
 	// Run the reference solution
-	float* reference = initialize_grid(N, -10, 10);
+	float* reference = initialize_grid(N, FMIN, FMAX);
 	auto begin = chrono::high_resolution_clock::now();
 	basic_solution(N, K, reference);
 	auto end = chrono::high_resolution_clock::now();
 	cout << "Reference:  " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
 
 	// Run the blocked version
-	float* blocked = initialize_grid(N, -10, 10);    
+	float* blocked = initialize_grid(N, FMIN, FMAX);    
 	float* blocked_transposed = transpose(N, reference);
 	begin = chrono::high_resolution_clock::now();
 	blocked_solution<BLOCK_SIZE>(N, K, blocked, blocked_transposed);
 	end = chrono::high_resolution_clock::now();
 	cout << "Blocked:    " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
-	//delete[] blocked_transposed;
-	//delete[] blocked;
 	::operator delete(blocked_transposed, std::align_val_t(64));
 	::operator delete(blocked, std::align_val_t(64));
 
 	/***** Run SIMD version *****/
-	// float* vec_blocked_vectorized = initialize_grid(N, -100, 100);
-	// float* vec_blocked_vectorized_transposed = transpose(N, vec_blocked_vectorized);
-	// begin = chrono::high_resolution_clock::now();
-	// blocked_simd<B>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
-	// end = chrono::high_resolution_clock::now();
-	// cout << "SIMD: " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
-	// assert(test_grids(N, reference, vec_blocked_vectorized));
-	// delete[] vec_blocked_vectorized_transposed; 
-	// delete[] vec_blocked_vectorized;
+	float* vec_blocked_vectorized = initialize_grid(N, FMIN, FMAX);
+	float* vec_blocked_vectorized_transposed = transpose(N, vec_blocked_vectorized);
+	begin = chrono::high_resolution_clock::now();
+	//blocked_simd<BLOCK_SIZE>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
+	stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
+	end = chrono::high_resolution_clock::now();
+	cout << "SIMD: " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
+	assert(test_grids(N, reference, vec_blocked_vectorized));
+	delete[] vec_blocked_vectorized_transposed; 
+	delete[] vec_blocked_vectorized;
 
 	/***** Run OMP version *****/
-	// float* vec_blocked_vectorized_multithreaded = initialize_grid(N, -100, 100);
-	// float* vec_blocked_vectorized_transposed_multithreaded = transpose(N, vec_blocked_vectorized_multithreaded);
-	// begin = chrono::high_resolution_clock::now();
-	// blocked_simd_omp<B>(N, K, vec_blocked_vectorized_multithreaded, vec_blocked_vectorized_transposed_multithreaded);
-	// end = chrono::high_resolution_clock::now();
-	// cout << "SIMD+OMP: " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
-	// assert(test_grids(N, reference, vec_blocked_vectorized_multithreaded));
-	// delete[] vec_blocked_vectorized_transposed_multithreaded; 
-	// delete[] vec_blocked_vectorized_multithreaded;
+	float* vec_blocked_vectorized_multithreaded = initialize_grid(N, FMIN, FMAX);
+	float* vec_blocked_vectorized_transposed_multithreaded = transpose(N, vec_blocked_vectorized_multithreaded);
+	begin = chrono::high_resolution_clock::now();
+	blocked_simd_omp<BLOCK_SIZE>(N, K, vec_blocked_vectorized_multithreaded, vec_blocked_vectorized_transposed_multithreaded);
+	end = chrono::high_resolution_clock::now();
+	cout << "SIMD+OMP: " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
+	assert(test_grids(N, reference, vec_blocked_vectorized_multithreaded));
+	delete[] vec_blocked_vectorized_transposed_multithreaded; 
+	delete[] vec_blocked_vectorized_multithreaded;
 	
 	// Free memory
 	//delete[] reference;

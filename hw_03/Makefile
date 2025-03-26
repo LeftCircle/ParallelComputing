@@ -1,8 +1,7 @@
 CC = g++
 
 #CCFLAGS = -std=c++2a -O3 -ffast-math -msse4.2 -fopenmp -lm 
-CCFLAGS = -std=c++2a -O3 -ffast-math -msse4.2 -fopenmp -lm -g -O0 -Wall
-
+CCFLAGS = -std=c++2a -O3 -ffast-math -msse4.2 -fopenmp -lm -g
 INCLUDES = -I./include
 
 SRC_DIR = src

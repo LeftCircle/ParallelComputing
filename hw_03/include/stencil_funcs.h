@@ -18,7 +18,7 @@
 
 #include "simd_funcs.h"
 
-const int BLOCK_SIZE = 2;
+const int BLOCK_SIZE = 64;
 
 void average_1D_stencil(int N, int K, float* vec);
 float get_stencil_average_from(const float* vec, int left_boundary, int right_boundary, int x);
@@ -34,6 +34,8 @@ void stencil_2D_blocked_simd(int N, int K, float* __restrict__ vec, const float*
 template<int B>
 void _average_2D_stencil_blocked(int N, int K, int start_x, int start_y, const float* __restrict__ vec,
 	 							const float* __restrict__ trans, float* __restrict__ out);
+template<int B>
+void stencil_2D_b_simd_openmp(int N, int K, float* __restrict__ vec, const float* __restrict__ trans);
 
 void _average_1D_stencil(int N, int K, const float* vec, float* tmp);
 

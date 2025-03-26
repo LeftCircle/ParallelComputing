@@ -13,19 +13,18 @@ void simd_vec_add_m128(int N, const float* __restrict__ vec_0, const float* __re
 	}
 }
 
-float simd_accumulate_m128(const float* __restrict__ vec, int start, int end){
+float simd_accumulate_m128_unaligned(const float* __restrict__ vec, int start, int end){
+	//assert((reinterpret_cast<uintptr_t>(vec) % 64) == 0);
 	int n_standard_iters = (end - start) % 4;
 	int simd_end = end - n_standard_iters;
 	__m128 sum = _mm_setzero_ps();
 	for (int i = start; i < simd_end; i+=4){
-		__m128 neighbors = _mm_load_ps(&vec[i]);
+		__m128 neighbors = _mm_loadu_ps(&vec[i]);
 		sum = _mm_add_ps(sum, neighbors);
 	}
-	// Now handle the edge case
 	__m128 edge_case;
 	load_partial(&edge_case, n_standard_iters, &vec[simd_end]);
 	sum = _mm_add_ps(sum, edge_case);
-	//float seq_sum = sum_vec_values(vec, end - n_standard_iters, end);
 	float scalar_sum;
 	#ifdef __mm_hadd_ps
 	sum = _mm_hadd_ps(sum, sum);
@@ -35,7 +34,48 @@ float simd_accumulate_m128(const float* __restrict__ vec, int start, int end){
 	float* sum_ptr = (float*)&sum;
 	scalar_sum = sum_ptr[0] + sum_ptr[1] + sum_ptr[2] + sum_ptr[3];
 	#endif
-	//scalar_sum += seq_sum;
+	return scalar_sum;
+}
+
+float simd_accumulate_m128(const float* __restrict__ vec, int start, int end){
+	assert((reinterpret_cast<uintptr_t>(vec) % 64) == 0);
+	// Handle initial unaligned elements
+	uintptr_t addr = reinterpret_cast<uintptr_t>(&vec[start]);
+	int offset_to_align = (16 - (addr % 16)) / sizeof(float);
+	offset_to_align = std::min(offset_to_align, end - start);
+	int aligned_start = start + offset_to_align;
+	
+	// Knock out the unaligned start
+	__m128 edge_case;
+	load_partial(&edge_case, offset_to_align, &vec[start]);
+	
+	// Now the aligned portion
+	int remaining_elements = end - aligned_start;
+	int simd_iters = remaining_elements / 4;
+	int simd_end = aligned_start + simd_iters * 4;
+	__m128 aligned_sum = _mm_setzero_ps();
+	for (int i = aligned_start; i < simd_end; i+=4){
+		__m128 neighbors = _mm_load_ps(&vec[i]);
+		aligned_sum = _mm_add_ps(aligned_sum, neighbors);
+	}
+
+	// Handle the end
+	int n_remaining = end - simd_end;
+	__m128 end_case;
+	load_partial(&end_case, n_remaining, &vec[simd_end]);
+
+	// Sum the values
+	aligned_sum = _mm_add_ps(aligned_sum, end_case);
+	aligned_sum = _mm_add_ps(aligned_sum, edge_case);
+	float scalar_sum;
+	#ifdef __mm_hadd_ps
+	aligned_sum = _mm_hadd_ps(aligned_sum, aligned_sum);
+	aligned_sum = _mm_hadd_ps(aligned_sum, aligned_sum);
+	_mm_store_ss(&scalar_sum, aligned_sum);
+	#else
+	float* aligned_sum_ptr = (float*)&aligned_sum;
+	scalar_sum = aligned_sum_ptr[0] + aligned_sum_ptr[1] + aligned_sum_ptr[2] + aligned_sum_ptr[3];
+	#endif
 	return scalar_sum;
 }
 

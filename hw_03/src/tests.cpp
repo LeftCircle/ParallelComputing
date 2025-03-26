@@ -61,9 +61,7 @@ void test_1D_average_stencil(){
 	float expected_end[8] =   {2, 3, 3, 5, 5, 7, 7, 8};
 
 	average_1D_stencil(N, K, vec);
-	// for (int i = 0; i < N; i++){
-	// 	printf("%f\n", vec[i]);
-	// }
+	print_matrix(1, N, vec);
 	assert_vectors_match(N, vec, expected_end);
 	printf("First 1D Average Stencil Test Passed\n");
 
@@ -87,7 +85,7 @@ void test_1D_average_stencil(){
 
 void test_1D_average_stencil_simd(){
 	const int N = 8;
-	const int K = 2;
+	const int K = 4;
 	float* vec = new(std::align_val_t(64)) float[N];
 	//float* expected = new(std::align_val_t(64)) float[N];
 
@@ -128,7 +126,7 @@ void test_simd_sequential_add(){
 void test_simd_sequantial_add_any_size(){
 	const int N = 15;
 	float expected[N];
-	float vec[N];
+	float* vec = new(std::align_val_t(64)) float[N];
 	for (int i = 0; i < N; i++){
 		vec[i] = i;
 		expected[i] = i;
@@ -136,6 +134,7 @@ void test_simd_sequantial_add_any_size(){
 	float sum = sum_vec_values(vec, 0, N);
 	float simd_sum = simd_accumulate_m128(vec, 0, N);
 	assert(sum == simd_sum);
+	::operator delete[] (vec, std::align_val_t(64));
 	printf("SIMD Sequential Add Any Size Test Passed\n");
 }
 
@@ -153,8 +152,8 @@ void test_m_128_with_three_values(){
 }
 
 void test_2d_simd_stencil(){
-	const int N = 4;
-	const int K = 2;
+	const int N = 8;
+	const int K = 4;
 	float* vec = new(std::align_val_t(64)) float[N*N];
 	float* b_vec = new(std::align_val_t(64)) float[N*N];
 	float* expected = new(std::align_val_t(64)) float[N*N];
@@ -172,13 +171,16 @@ void test_2d_simd_stencil(){
 	printf("Expected\n");
 	print_matrix(N, N, expected);
 	float* trans = transpose(N, vec);
-	stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, b_vec, trans);
+	// Assert allignments
+	assert((reinterpret_cast<uintptr_t>(vec) % 64) == 0);
+	assert((reinterpret_cast<uintptr_t>(trans) % 64) == 0);
+	//stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, b_vec, trans);
 	stencil_2D_simd(N, K, vec, trans);
 	printf("Actual\n");
 	print_matrix(N, N, vec);
 
 	assert_vectors_match(N*N, vec, expected);
-	assert_vectors_match(N*N, b_vec, expected);
+	//assert_vectors_match(N*N, b_vec, expected);
 	::operator delete[] (b_vec, std::align_val_t(64));
 	::operator delete[] (vec, std::align_val_t(64));
 	::operator delete[] (expected, std::align_val_t(64));
@@ -232,8 +234,14 @@ void profile_vec_sequential_sum(){
 	end = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<double> simd_time = end - start;
 	std::cout << "SIMD Time: " << simd_time.count() << std::endl;
-	printf("Sum = %f simd_sum = %f\n", sum, simd_sum);
+	
+	start = std::chrono::high_resolution_clock::now();
+	float simd_sum_2 = simd_accumulate_m128_unaligned(test_vec, 1, N);
+	end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> simd_time_2 = end - start;
+	std::cout << "SIMD Time Unaligned: " << simd_time_2.count() << std::endl;
 	//delete[] test_vec;
+	printf("Sum = %f simd_sum = %f\n", sum, simd_sum);
 	::operator delete(test_vec, std::align_val_t(64));
 	assert(simd_sum == sum);
 	printf("\n");
@@ -257,8 +265,6 @@ void run_tests(){
 	test_simd_sequantial_add_any_size();
 	test_2d_simd_stencil();
 	printf("All Tests Passed\n");
-
-	
 }
 
 

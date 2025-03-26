@@ -44,27 +44,6 @@ void _average_1D_stencil(int N, int K, const float* vec, float* tmp){
 	}
 }
 
-void _average_2D_stencil_point(int N, int K, int x, int y, const float* __restrict__ vec,
-						 	   const float* __restrict__ trans, float* __restrict__ out){
-	// We don't even need to loop. We are just getting the average_2D_tencil at a given point
-	
-	int left_boundary = max(y - K, 0);
-	int right_boundary = min(y + K, N - 1);
-	int bottom_boundary = max(x - K, 0);
-	int upper_boundary = min(x + K, N - 1);
-	int l_neighbors = y - left_boundary;
-	int r_neighbors = right_boundary - y;
-	int b_neighbors = x - bottom_boundary;
-	int u_neighbors = upper_boundary - x;
-	int neighbors_count = l_neighbors + r_neighbors + b_neighbors + u_neighbors;
-	float l_sum = simd_accumulate_m128(vec, x * N + left_boundary, x * N + y);
-	float r_sum = simd_accumulate_m128(vec, x * N + y + 1, x * N + right_boundary + 1);
-	float b_sum = simd_accumulate_m128(trans, y * N + bottom_boundary, y * N + x);
-	float t_sum = simd_accumulate_m128(trans, y * N + x + 1, y * N + upper_boundary + 1);
-	float sum = l_sum + r_sum + b_sum + t_sum;
-	out[x*N + y] = sum / neighbors_count;
-}
-
 // Solutions:
 template<int B>
 void stencil_2D_blocked(int N, int K, float* __restrict__ vec, float* __restrict__ trans){
@@ -162,7 +141,7 @@ void stencil_2D_simd(int N, int K, float* __restrict__ vec, const float* __restr
 		}
 	}
 	memcpy(vec, tmp, N*N * sizeof(float));
-	delete[] tmp;
+	operator delete (tmp, std::align_val_t(64));
 }
 
 template<int B>
@@ -173,7 +152,6 @@ void stencil_2D_blocked_simd(int N, int K, float* __restrict__ vec, const float*
 	}
 	// Allocate tmp grid
 	float* tmp = new(std::align_val_t(64)) float[N*N];
-
 	for (int I = 0; I < N; I+=B) {
 		for (int J = 0; J < N; J+=B) {
 			_average_2D_stencil_blocked<B>(N, K, I, J, vec, trans, tmp);
@@ -182,7 +160,7 @@ void stencil_2D_blocked_simd(int N, int K, float* __restrict__ vec, const float*
 
 	// Write back
 	memcpy(vec, tmp, N*N * sizeof(float));
-	delete[] tmp;
+	::operator delete(tmp, std::align_val_t(64));
 }
 
 template<int B>
@@ -197,6 +175,45 @@ void _average_2D_stencil_blocked(int N, int K, int start_x, int start_y, const f
 	}
 }
 
+template<int B>
+void stencil_2D_b_simd_openmp(int N, int K, float* __restrict__ vec, const float* __restrict__ trans){
+	if (N % B != 0) {
+		cout << "N must be divisible through B" << endl;
+		exit(-1);
+	}
+	// Allocate tmp grid
+	float* tmp = new(std::align_val_t(64)) float[N*N];
+	for (int I = 0; I < N; I+=B) {
+		#pragma omp parallel for
+		for (int J = 0; J < N; J+=B) {
+			_average_2D_stencil_blocked<B>(N, K, I, J, vec, trans, tmp);
+		}
+	}
+
+	// Write back
+	memcpy(vec, tmp, N*N * sizeof(float));
+	delete[] tmp;
+}
+
+void _average_2D_stencil_point(int N, int K, int x, int y, const float* __restrict__ vec,
+	const float* __restrict__ trans, float* __restrict__ out){
+	int left_boundary = max(y - K, 0);
+	int right_boundary = min(y + K, N - 1);
+	int bottom_boundary = max(x - K, 0);
+	int upper_boundary = min(x + K, N - 1);
+	int l_neighbors = y - left_boundary;
+	int r_neighbors = right_boundary - y;
+	int b_neighbors = x - bottom_boundary;
+	int u_neighbors = upper_boundary - x;
+	int neighbors_count = l_neighbors + r_neighbors + b_neighbors + u_neighbors;
+	float l_sum = simd_accumulate_m128_unaligned(vec, x * N + left_boundary, x * N + y);
+	float r_sum = simd_accumulate_m128_unaligned(vec, x * N + y + 1, x * N + right_boundary + 1);
+	float b_sum = simd_accumulate_m128_unaligned(trans, y * N + bottom_boundary, y * N + x);
+	float t_sum = simd_accumulate_m128_unaligned(trans, y * N + x + 1, y * N + upper_boundary + 1);
+	float sum = l_sum + r_sum + b_sum + t_sum;
+	out[x*N + y] = sum / neighbors_count;
+}
+
 
 // Declare the blocked solution
 template void stencil_2D_blocked<BLOCK_SIZE>(int N, int K, float* __restrict__ vec, float* __restrict__ trans);
@@ -207,3 +224,5 @@ template void stencil_2D_blocked_simd<BLOCK_SIZE>(int N, int K, float* __restric
 template void _average_2D_stencil_blocked<BLOCK_SIZE>(int N, int K, int start_x,
 													  int start_y, const float* __restrict__ vec,
 													  const float* __restrict__ trans, float* __restrict__ out);
+template void stencil_2D_b_simd_openmp<BLOCK_SIZE>(int N, int K, float* __restrict__ vec,
+												   const float* __restrict__ trans);
