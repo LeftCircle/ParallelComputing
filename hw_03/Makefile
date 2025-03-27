@@ -22,9 +22,6 @@ else
 	mkdir -p $(OBJ_DIR)
 endif
 
-# stencil: stencil.cpp
-# 	$(CC) $(CCFLAGS) -o $@ $<
-
 stencil: $(OBJECTS)
 	$(CC) $(CCFLAGS) -o $@ $^
 

@@ -183,8 +183,8 @@ void stencil_2D_b_simd_openmp(int N, int K, float* __restrict__ vec, const float
 	}
 	// Allocate tmp grid
 	float* tmp = new(std::align_val_t(64)) float[N*N];
+	#pragma omp parallel for
 	for (int I = 0; I < N; I+=B) {
-		#pragma omp parallel for
 		for (int J = 0; J < N; J+=B) {
 			_average_2D_stencil_blocked<B>(N, K, I, J, vec, trans, tmp);
 		}
