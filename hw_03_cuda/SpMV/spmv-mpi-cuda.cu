@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <cuda_runtime.h>
+#include <mpi.h>
 
 #include "cmdline.h"
 #include "input.h"
@@ -18,10 +19,131 @@
    __typeof__ (b) _b = (b); \
  _a < _b ? _a : _b; })
 
+
+ typedef struct coo_bench_data{
+	int n_nonzeros;
+	double bytes_per_coospmv; 
+} coo_bench_data;
+
+// Global variables for MPI
+int rank;
+int size;
+coo_bench_data og_coo_bench_data;
+
 void usage(int argc, char** argv)
 {
     printf("Usage: %s [my_matrix.mtx]\n", argv[0]);
     printf("Note: my_matrix.mtx must be real-valued sparse matrix in the MatrixMarket file format.\n"); 
+}
+
+static inline void split_workload(int n, int p, int *workload_array, int *workload_displ){
+	int workload = n/p;
+	int excess = n%p;
+	workload_array[0] = workload;
+	if (0 < excess){
+		workload_array[0]++;
+	}
+	workload_displ[0] = 0;
+	for (int i = 1; i < p; i++){
+		workload_array[i] = workload;
+		if (i < excess){
+			workload_array[i]++;
+		}
+		workload_displ[i] = workload_array[i - 1] + workload_displ[i - 1];
+	}
+}
+
+
+void init_matrix_and_xy_vals(coo_matrix * coo, float *x, float *y){
+	srand(13);
+	for (int i = 0; i < coo->num_nonzeros; i++){
+		coo->vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
+	}
+	for(int i = 0; i < coo->num_cols; i++) {
+        x[i] = rand() / (RAND_MAX + 1.0); 
+    }
+    for(int i = 0; i < coo->num_rows; i++){
+        y[i] = 0;
+	}
+}
+
+void _rank_zero_startup(coo_matrix * coo, float **x, float **y,
+	float **y_parallel, const char * mm_filename){
+	//coo_matrix coo;
+	read_coo_matrix(coo, mm_filename);
+	*x = (float*)malloc(coo->num_cols * sizeof(float));
+	*y = (float*)malloc(coo->num_rows * sizeof(float));
+	*y_parallel = (float*)calloc(coo->num_rows, sizeof(float));
+	init_matrix_and_xy_vals(coo, *x, *y);
+}
+
+void _rank_zero_data_scatter(coo_matrix *coo){
+// Now we have to distribute the data. 
+// Each node will get the entire y array, a full x array that will
+// later be summed up, and a portion of the row/column/value from the
+// coo array
+	int *workload_array_size = (int *)malloc(size * sizeof(int));
+	int *workload_displsi = (int*)malloc(size * sizeof(int));
+	split_workload(coo->num_nonzeros, size, workload_array_size, workload_displsi);
+
+	MPI_Scatter(workload_array_size, 1, MPI_INT, &coo->num_nonzeros, 1, MPI_INT,
+	0, MPI_COMM_WORLD);
+
+	MPI_Scatterv(coo->rows, workload_array_size, workload_displsi, MPI_INT,
+				coo->rows, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(coo->cols, workload_array_size, workload_displsi, MPI_INT,
+				coo->cols, coo->num_nonzeros, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(coo->vals, workload_array_size, workload_displsi, MPI_FLOAT,
+				coo->vals, coo->num_nonzeros, MPI_FLOAT, 0, MPI_COMM_WORLD);
+
+	free(workload_array_size);
+	free(workload_displsi);
+}
+
+void _other_rank_data_scatter(coo_matrix * coo){
+	// Recieve workload size
+	MPI_Scatter(NULL, 1, MPI_INT, &coo->num_nonzeros, 1, MPI_INT,
+	0, MPI_COMM_WORLD);
+
+	#ifdef DEBUG
+	printf("Rank %d got workload size %d\n. Allocating space", rank, coo->num_nonzeros);
+	#endif
+	// Allocate space for the values
+	coo->rows = (int*)malloc(coo->num_nonzeros * sizeof(int));
+	coo->cols = (int*)malloc(coo->num_nonzeros * sizeof(int));
+	coo->vals = (float*)malloc(coo->num_nonzeros * sizeof(float));
+
+	// Now receive the buffers for this nodes portion of work
+	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo->rows, coo->num_nonzeros,
+	MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(NULL, NULL, NULL, MPI_INT, coo->cols, coo->num_nonzeros,
+	MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Scatterv(NULL, NULL, NULL, MPI_FLOAT, coo->vals, coo->num_nonzeros,
+	MPI_FLOAT, 0, MPI_COMM_WORLD);
+}
+
+void _split_vals_between_nodes(coo_matrix * coo){
+	if (rank == 0){
+		_rank_zero_data_scatter(coo);
+	} else{
+		_other_rank_data_scatter(coo);
+	}
+}
+
+void _init_x_and_y_for_nonzero_nodes(coo_matrix *coo, float **x, float **y){
+	*x = (float *)malloc(coo->num_cols * sizeof(float));
+	*y = (float *)calloc(coo->num_rows, sizeof(float));
+}
+
+void _broadcast_data_for_x_and_y(coo_matrix *coo, float **x, float **y){
+	MPI_Bcast(&coo->num_rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&coo->num_cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	if (rank != 0){
+		_init_x_and_y_for_nonzero_nodes(coo, x, y);
+	}
+	// Now we can send the x array with the data in it
+	MPI_Bcast(*x, coo->num_cols, MPI_FLOAT, 0, MPI_COMM_WORLD);
 }
 
 
@@ -67,6 +189,9 @@ void coo_spmv_cuda(coo_matrix* coo, const float* x, float* y) {
         coo->num_nonzeros, d_rows, d_cols, d_vals, d_x, d_y
     );
     
+	// wait for kernel to finish
+	cudaDeviceSynchronize();
+
     // Copy result back to host
     cudaMemcpy(y, d_y, coo->num_rows * sizeof(float), cudaMemcpyDeviceToHost);
     
@@ -79,47 +204,80 @@ void coo_spmv_cuda(coo_matrix* coo, const float* x, float* y) {
 }
 
 
-// MIN_ITER, MAX_ITER, TIME_LIMIT, 
-double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
-{
-    int num_nonzeros = coo->num_nonzeros;
+// // MIN_ITER, MAX_ITER, TIME_LIMIT, 
+// double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
+// {
+//     int num_nonzeros = coo->num_nonzeros;
 
-    // warmup    
-    timer time_one_iteration;
-    timer_start(&time_one_iteration);
-	coo_spmv_cuda(coo, x, y);
-    double estimated_time = seconds_elapsed(&time_one_iteration); 
-//    printf("estimated time for once %f\n", (float) estimated_time);
+//     // warmup    
+//     timer time_one_iteration;
+//     timer_start(&time_one_iteration);
+// 	coo_spmv_cuda(coo, x, y);
+//     double estimated_time = seconds_elapsed(&time_one_iteration); 
+// //    printf("estimated time for once %f\n", (float) estimated_time);
 
-    // determine # of seconds dynamically
-    int num_iterations;
-    num_iterations = MAX_ITER;
+//     // determine # of seconds dynamically
+//     int num_iterations;
+//     num_iterations = MAX_ITER;
 
-    if (estimated_time == 0)
-        num_iterations = MAX_ITER;
-    else {
-        num_iterations = min(MAX_ITER, max(MIN_ITER, (int) (TIME_LIMIT / estimated_time)) ); 
-    }
-    printf("\tPerforming %d iterations\n", num_iterations);
-    // time several SpMV iterations
-    timer t;
-    timer_start(&t);
-    for(int j = 0; j < num_iterations; j++)
-        // for (int i = 0; i < num_nonzeros; i++){   
-        //     y[coo->rows[i]] += coo->vals[i] * x[coo->cols[i]];
-        // }
-		coo_spmv_cuda(coo, x, y);
-    double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
-    double sec_per_iteration = msec_per_iteration / 1000.0;
-    double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
-    double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
-    printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
+//     if (estimated_time == 0)
+//         num_iterations = MAX_ITER;
+//     else {
+//         num_iterations = min(MAX_ITER, max(MIN_ITER, (int) (TIME_LIMIT / estimated_time)) ); 
+//     }
+//     printf("\tPerforming %d iterations\n", num_iterations);
+//     // time several SpMV iterations
+//     timer t;
+//     timer_start(&t);
+//     for(int j = 0; j < num_iterations; j++)
+// 		coo_spmv_cuda(coo, x, y);
+//     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
+//     double sec_per_iteration = msec_per_iteration / 1000.0;
+//     double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
+//     double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
+//     printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
 
-    return msec_per_iteration;
+//     return msec_per_iteration;
+// }
+
+void benchmark_coo_spmv(coo_matrix *coo, float **x, float **y, float *y_parallel){
+	_split_vals_between_nodes(coo);
+	_broadcast_data_for_x_and_y(coo, x, y);
+	timer t;
+	timer_start(&t);
+	for(int j = 0; j < 500; j++){
+		coo_spmv_cuda(coo, *x, *y);
+		MPI_Reduce(*y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+	double msec_per_iteration = milliseconds_elapsed(&t) / (double) 500;
+	if (rank == 0){
+		double sec_per_iteration = msec_per_iteration / 1000.0;
+		double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
+		double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
+		printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
+	}
+
+	if (rank != 0){
+		free(*x);
+		free(*y);
+	}
+}
+
+void coo_spmv_mpi_cuda(coo_matrix * coo, float **x, float **y, float * y_parallel){
+	_split_vals_between_nodes(coo);
+	_broadcast_data_for_x_and_y(coo, x, y);
+	coo_spmv_cuda(coo, *x, *y);
+	MPI_Reduce(*y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 }
 
 int main(int argc, char** argv)
 {
+
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+
     if (get_arg(argc, argv, "help") != NULL){
         usage(argc, argv);
         return 0;
@@ -133,76 +291,60 @@ int main(int argc, char** argv)
         mm_filename = argv[1];
 
     coo_matrix coo;
-    read_coo_matrix(&coo, mm_filename);
-
-    // fill matrix with random values: some matrices have extreme values, 
-    // which makes correctness testing difficult, especially in single precision
-    srand(13);
-    for(int i = 0; i < coo.num_nonzeros; i++) {
-        coo.vals[i] = 1.0 - 2.0 * (rand() / (RAND_MAX + 1.0)); 
+	float * x;
+	float * y;
+	float * y_parallel;
+	int og_nonzeros;
+	if (rank == 0){
+		_rank_zero_startup(&coo, &x, &y, &y_parallel, mm_filename);
+		og_nonzeros = coo.num_nonzeros;
+		og_coo_bench_data.n_nonzeros = coo.num_nonzeros;
+		og_coo_bench_data.bytes_per_coospmv = bytes_per_coo_spmv(&coo);
 	}
-    
-    printf("\nfile=%s rows=%d cols=%d nonzeros=%d\n", mm_filename, coo.num_rows, coo.num_cols, coo.num_nonzeros);
-    fflush(stdout);
-
-#ifdef TESTING
-//print in COO format
-    printf("Writing matrix in COO format to test_COO ...");
-    FILE *fp = fopen("test_COO", "w");
-    fprintf(fp, "%d\t%d\t%d\n", coo.num_rows, coo.num_cols, coo.num_nonzeros);
-    fprintf(fp, "coo.rows:\n");
-    for (int i=0; i<coo.num_nonzeros; i++)
-    {
-      fprintf(fp, "%d  ", coo.rows[i]);
-    }
-    fprintf(fp, "\n\n");
-    fprintf(fp, "coo.cols:\n");
-    for (int i=0; i<coo.num_nonzeros; i++)
-    {
-      fprintf(fp, "%d  ", coo.cols[i]);
-    }
-    fprintf(fp, "\n\n");
-    fprintf(fp, "coo.vals:\n");
-    for (int i=0; i<coo.num_nonzeros; i++)
-    {
-      fprintf(fp, "%f  ", coo.vals[i]);
-    }
-    fprintf(fp, "\n");
-    fclose(fp);
-    printf("... done!\n");
-#endif 
-
-    //initialize host arrays
-    float * x = (float*)malloc(coo.num_cols * sizeof(float));
-	float * y = (float*)malloc(coo.num_rows * sizeof(float));
-
-    for(int i = 0; i < coo.num_cols; i++) {
-        x[i] = rand() / (RAND_MAX + 1.0); 
-    }
-    for(int i = 0; i < coo.num_rows; i++)
-        y[i] = 0;
 
     /* Benchmarking */
     double coo_gflops;
-    coo_gflops = benchmark_coo_spmv(&coo, x, y);
+    benchmark_coo_spmv(&coo, &x, &y, y_parallel);
 
     /* Test correctnesss */
 	#ifdef TESTING
-	float * y_exp = (float*)malloc(coo.num_rows * sizeof(float));
-	coo_spmv(&coo, x, y_exp);
-	float max_diff = 0;
-	for(int i = 0; i < coo.num_rows; i++) {
-		max_diff = max(max_diff, fabs(y[i] - y_exp[i]));
+	coo_matrix coo_act;
+	float * x_act;
+	float * y_act;
+	float * y_parallel_act;
+	if (rank == 0){
+		_rank_zero_startup(&coo_act, &x_act, &y_act, &y_parallel_act, mm_filename);
+		og_nonzeros = coo_act.num_nonzeros;
+		og_coo_bench_data.n_nonzeros = coo_act.num_nonzeros;
+		og_coo_bench_data.bytes_per_coospmv = bytes_per_coo_spmv(&coo_act);
 	}
-	printf("Max difference: %f\n", max_diff);
-	free(y_exp);
-
+	coo_spmv_mpi_cuda(&coo_act, &x_act, &y_act, y_parallel_act);
+	if (rank == 0){
+		float * y_exp = (float*)calloc(coo.num_rows, sizeof(float));
+		coo_spmv(&coo, x, y_exp);
+		float max_diff = 0;
+		for(int i = 0; i < coo.num_rows; i++) {
+			max_diff = max(max_diff, fabs(y_parallel_act[i] - y_exp[i]));
+		}
+		printf("Max difference: %f\n", max_diff);
+		free(y_exp);
+		free(x_act);
+		free(y_act);
+		free(y_parallel_act);
+	}
 	#endif
 
-    delete_coo_matrix(&coo);
-    free(x);
-    free(y);
-
+    if (rank == 0){
+		// Other nodes free their memory already after the reduce
+		free(x);
+		free(y);
+		free(y_parallel);
+	}
+	delete_coo_matrix(&coo);
+	if (rank == 0){
+		printf("DONE\n");
+	}
+	MPI_Finalize();
     return 0;
 }
 
