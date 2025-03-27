@@ -136,33 +136,33 @@ int main(int argc, char* argv[]) {
 	cout << "N: " << N << ", K: " << K << ", B: " << BLOCK_SIZE << endl;
 
 	// Run the reference solution
-	// float* reference = initialize_grid(N, FMIN, FMAX);
+	float* reference = initialize_grid(N, FMIN, FMAX);
 	auto begin = chrono::high_resolution_clock::now();
-	// basic_solution(N, K, reference);
+	basic_solution(N, K, reference);
 	auto end = chrono::high_resolution_clock::now();
-	// cout << "Reference:  " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
+	cout << "Reference:  " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
 
-	// // Run the blocked version
-	// float* blocked = initialize_grid(N, FMIN, FMAX);    
-	// float* blocked_transposed = transpose(N, reference);
-	// begin = chrono::high_resolution_clock::now();
-	// blocked_solution<BLOCK_SIZE>(N, K, blocked, blocked_transposed);
-	// end = chrono::high_resolution_clock::now();
-	// cout << "Blocked:    " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
-	// ::operator delete(blocked_transposed, std::align_val_t(64));
-	// ::operator delete(blocked, std::align_val_t(64));
+	// Run the blocked version
+	float* blocked = initialize_grid(N, FMIN, FMAX);    
+	float* blocked_transposed = transpose(N, reference);
+	begin = chrono::high_resolution_clock::now();
+	blocked_solution<BLOCK_SIZE>(N, K, blocked, blocked_transposed);
+	end = chrono::high_resolution_clock::now();
+	cout << "Blocked:    " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
+	::operator delete(blocked_transposed, std::align_val_t(64));
+	::operator delete(blocked, std::align_val_t(64));
 
-	// /***** Run SIMD version *****/
-	// float* vec_blocked_vectorized = initialize_grid(N, FMIN, FMAX);
-	// float* vec_blocked_vectorized_transposed = transpose(N, vec_blocked_vectorized);
-	// begin = chrono::high_resolution_clock::now();
-	// //blocked_simd<BLOCK_SIZE>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
-	// stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
-	// end = chrono::high_resolution_clock::now();
-	// cout << "SIMD: " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
-	// assert(test_grids(N, reference, vec_blocked_vectorized));
-	// delete[] vec_blocked_vectorized_transposed; 
-	// delete[] vec_blocked_vectorized;
+	/***** Run SIMD version *****/
+	float* vec_blocked_vectorized = initialize_grid(N, FMIN, FMAX);
+	float* vec_blocked_vectorized_transposed = transpose(N, vec_blocked_vectorized);
+	begin = chrono::high_resolution_clock::now();
+	//blocked_simd<BLOCK_SIZE>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
+	stencil_2D_blocked_simd<BLOCK_SIZE>(N, K, vec_blocked_vectorized, vec_blocked_vectorized_transposed);
+	end = chrono::high_resolution_clock::now();
+	cout << "SIMD: " << chrono::duration_cast<chrono::milliseconds>(end-begin).count() << "ms" << endl;
+	assert(test_grids(N, reference, vec_blocked_vectorized));
+	delete[] vec_blocked_vectorized_transposed; 
+	delete[] vec_blocked_vectorized;
 
 	/***** Run OMP version *****/
 	float* vec_blocked_vectorized_multithreaded = initialize_grid(N, FMIN, FMAX);

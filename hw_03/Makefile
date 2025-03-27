@@ -26,7 +26,7 @@ stencil: $(OBJECTS)
 	$(CC) $(CCFLAGS) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INC_DIR)/*.h
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
 
 run:
 	./stencil
