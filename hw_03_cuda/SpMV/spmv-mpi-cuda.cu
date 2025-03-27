@@ -67,9 +67,6 @@ void coo_spmv_cuda(coo_matrix* coo, const float* x, float* y) {
         coo->num_nonzeros, d_rows, d_cols, d_vals, d_x, d_y
     );
     
-	// wait for kernel to finish
-	cudaDeviceSynchronize();
-
     // Copy result back to host
     cudaMemcpy(y, d_y, coo->num_rows * sizeof(float), cudaMemcpyDeviceToHost);
     
@@ -188,17 +185,14 @@ int main(int argc, char** argv)
     /* Benchmarking */
     double coo_gflops;
     coo_gflops = benchmark_coo_spmv(&coo, x, y);
-	printf("COO GFLOPS: %f\n", coo_gflops);
 
     /* Test correctnesss */
 	#ifdef TESTING
-	float* y_act = (float*)calloc(coo.num_rows, sizeof(float));
-	coo_spmv_cuda(&coo, x, y_act);
-	float * y_exp = (float*)calloc(coo.num_rows, sizeof(float));
+	float * y_exp = (float*)malloc(coo.num_rows * sizeof(float));
 	coo_spmv(&coo, x, y_exp);
 	float max_diff = 0;
 	for(int i = 0; i < coo.num_rows; i++) {
-		max_diff = max(max_diff, fabs(y_act[i] - y_exp[i]));
+		max_diff = max(max_diff, fabs(y[i] - y_exp[i]));
 	}
 	printf("Max difference: %f\n", max_diff);
 	free(y_exp);
