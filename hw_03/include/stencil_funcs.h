@@ -18,7 +18,7 @@
 
 #include "simd_funcs.h"
 
-const int BLOCK_SIZE = 64;
+const int BLOCK_SIZE = 256;
 
 void average_1D_stencil(int N, int K, float* vec);
 float get_stencil_average_from(const float* vec, int left_boundary, int right_boundary, int x);

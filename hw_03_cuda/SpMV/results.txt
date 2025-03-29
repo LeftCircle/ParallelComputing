@@ -1,0 +1,114 @@
+Cuda only
+--------------------------------------------------------
+Running spmv-cuda with matrix: test_matrices/D6-6.mtx
+Reading sparse matrix from file (test_matrices/D6-6.mtx): done
+
+file=test_matrices/D6-6.mtx rows=120576 cols=23740 nonzeros=146880
+Writing matrix in COO format to test_COO ...... done!
+        benchmarking COO-SpMV:   2.4789 ms (  0.12 GFLOP/s   1.1 GB/s)
+COO GFLOPS: 2.478891
+Max difference: 0.000000
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/Ga3As3H12.mtx
+Reading sparse matrix from file (test_matrices/Ga3As3H12.mtx): done
+
+file=test_matrices/Ga3As3H12.mtx rows=61349 cols=61349 nonzeros=5970947
+Writing matrix in COO format to test_COO ...... done!
+        benchmarking COO-SpMV:   1.7050 ms (  7.00 GFLOP/s  56.3 GB/s)
+COO GFLOPS: 1.704962
+Max difference: 0.000040
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/bfly.mtx
+Reading sparse matrix from file (test_matrices/bfly.mtx): done
+
+file=test_matrices/bfly.mtx rows=49152 cols=49152 nonzeros=196608
+Writing matrix in COO format to test_COO ...... done!
+        benchmarking COO-SpMV:   0.0407 ms (  9.67 GFLOP/s  87.0 GB/s)
+COO GFLOPS: 0.040672
+Max difference: 0.000000
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/dictionary28.mtx
+Reading sparse matrix from file (test_matrices/dictionary28.mtx): done
+
+file=test_matrices/dictionary28.mtx rows=52652 cols=52652 nonzeros=178076
+Writing matrix in COO format to test_COO ...... done!
+        benchmarking COO-SpMV:   0.0893 ms (  3.99 GFLOP/s  35.4 GB/s)
+COO GFLOPS: 0.089274
+Max difference: 0.000001
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/pkustk14.mtx
+Reading sparse matrix from file (test_matrices/pkustk14.mtx): done
+
+file=test_matrices/pkustk14.mtx rows=151926 cols=151926 nonzeros=14836504
+Writing matrix in COO format to test_COO ...... done!
+        benchmarking COO-SpMV:   2.8350 ms ( 10.47 GFLOP/s  84.2 GB/s)
+COO GFLOPS: 2.835017
+Max difference: 0.000011
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/roadNet-CA.mtx
+Reading sparse matrix from file (test_matrices/roadNet-CA.mtx): done
+
+file=test_matrices/roadNet-CA.mtx rows=1971281 cols=1971281 nonzeros=5533214
+Writing matrix in COO format to test_COO ...... done!
+        benchmarking COO-SpMV:   0.5454 ms ( 20.29 GFLOP/s 191.2 GB/s)
+COO GFLOPS: 0.545357
+Max difference: 0.000000
+----------------------------------------
+----------------------------------------
+----------------------------------------
+
+
+#SBATCH --output=output.log
+#SBATCH --error=error.log
+#SBATCH --nodes=4
+#SBATCH --partition=rtx4060ti16g
+#SBATCH --exclusive
+
+Running spmv-cuda with matrix: test_matrices/bfly.mtx
+Reading sparse matrix from file (test_matrices/bfly.mtx): done
+	benchmarking COO-SpMV:   0.3081 ms (  0.32 GFLOP/s   2.9 GB/s)
+Reading sparse matrix from file (test_matrices/bfly.mtx): done
+Reading sparse matrix from file (test_matrices/bfly.mtx): done
+Max difference: 0.000000
+DONE
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/D6-6.mtx
+Reading sparse matrix from file (test_matrices/D6-6.mtx): done
+	benchmarking COO-SpMV:   0.2632 ms (  0.28 GFLOP/s   2.6 GB/s)
+Reading sparse matrix from file (test_matrices/D6-6.mtx): done
+Reading sparse matrix from file (test_matrices/D6-6.mtx): done
+Max difference: 0.000000
+DONE
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/dictionary28.mtx
+Reading sparse matrix from file (test_matrices/dictionary28.mtx): done
+	benchmarking COO-SpMV:   0.2856 ms (  0.31 GFLOP/s   2.6 GB/s)
+Reading sparse matrix from file (test_matrices/dictionary28.mtx): done
+Reading sparse matrix from file (test_matrices/dictionary28.mtx): done
+Max difference: 0.000001
+DONE
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/Ga3As3H12.mtx
+Reading sparse matrix from file (test_matrices/Ga3As3H12.mtx): done
+	benchmarking COO-SpMV:   2.1078 ms (  1.42 GFLOP/s  11.4 GB/s)
+Reading sparse matrix from file (test_matrices/Ga3As3H12.mtx): done
+Reading sparse matrix from file (test_matrices/Ga3As3H12.mtx): done
+Max difference: 0.000053
+DONE
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/pkustk14.mtx
+Reading sparse matrix from file (test_matrices/pkustk14.mtx): done
+	benchmarking COO-SpMV:   3.2188 ms (  2.30 GFLOP/s  18.5 GB/s)
+Reading sparse matrix from file (test_matrices/pkustk14.mtx): done
+Reading sparse matrix from file (test_matrices/pkustk14.mtx): done
+Max difference: 0.000011
+DONE
+----------------------------------------
+Running spmv-cuda with matrix: test_matrices/roadNet-CA.mtx
+Reading sparse matrix from file (test_matrices/roadNet-CA.mtx): done
+	benchmarking COO-SpMV:   0.6436 ms (  4.30 GFLOP/s  40.5 GB/s)
+Reading sparse matrix from file (test_matrices/roadNet-CA.mtx): done
+Reading sparse matrix from file (test_matrices/roadNet-CA.mtx): done
+Max difference: 0.000000
+DONE
+----------------------------------------

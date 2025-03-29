@@ -162,105 +162,100 @@ __global__ void coo_spmv_kernel(int num_nonzeros, const int* rows, const int* co
 	}
 }
 
-void coo_spmv_cuda(coo_matrix* coo, const float* x, float* y) {
-    // Device memory pointers
-    int *d_rows, *d_cols;
-    float *d_vals, *d_x, *d_y;
-    
-    // Allocate device memory
-    cudaMalloc(&d_rows, coo->num_nonzeros * sizeof(int));
-    cudaMalloc(&d_cols, coo->num_nonzeros * sizeof(int));
-    cudaMalloc(&d_vals, coo->num_nonzeros * sizeof(float));
-    cudaMalloc(&d_x, coo->num_cols * sizeof(float));
-    cudaMalloc(&d_y, coo->num_rows * sizeof(float));
-    
-    // Copy data to device
-    cudaMemcpy(d_rows, coo->rows, coo->num_nonzeros * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_cols, coo->cols, coo->num_nonzeros * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_vals, coo->vals, coo->num_nonzeros * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_x, x, coo->num_cols * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemset(d_y, 0, coo->num_rows * sizeof(float));  // Initialize output to zero
-    
-    // Launch kernel
-    int threadsPerBlock = 256;
-    int blocksPerGrid = (coo->num_nonzeros + threadsPerBlock - 1) / threadsPerBlock;
-    
-    coo_spmv_kernel<<<blocksPerGrid, threadsPerBlock>>>(
-        coo->num_nonzeros, d_rows, d_cols, d_vals, d_x, d_y
-    );
-    
+void send_coo_spmv_data_to_gpu(coo_matrix* coo, float* x, int** d_rows, int** d_cols,
+	float** d_vals, float** d_x, float** d_y) {
+	// Allocate device memory
+	cudaMalloc(d_rows, coo->num_nonzeros * sizeof(int));
+	cudaMalloc(d_cols, coo->num_nonzeros * sizeof(int));
+	cudaMalloc(d_vals, coo->num_nonzeros * sizeof(float));
+	cudaMalloc(d_x, coo->num_cols * sizeof(float));
+	cudaMalloc(d_y, coo->num_rows * sizeof(float));
+
+	// Copy data to device
+	cudaMemcpy(*d_rows, coo->rows, coo->num_nonzeros * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(*d_cols, coo->cols, coo->num_nonzeros * sizeof(int), cudaMemcpyHostToDevice);
+	cudaMemcpy(*d_vals, coo->vals, coo->num_nonzeros * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(*d_x, x, coo->num_cols * sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemset(*d_y, 0, coo->num_rows * sizeof(float));  // Initialize output to zero
+	cudaDeviceSynchronize();
+}
+
+double time_coo_smpv_mpi_kernal(coo_matrix* coo, float** y, float *y_parallel, int* d_rows, int* d_cols,
+							float* d_vals, float* d_x, float* d_y) {
+	// Launch kernel
+	int threadsPerBlock = 256;
+	int blocksPerGrid = (coo->num_nonzeros + threadsPerBlock - 1) / threadsPerBlock;
+	timer t;
+	int num_iterations = 500;
+	timer_start(&t);
+
+	for (int i = 0; i < num_iterations; i++){
+		coo_spmv_kernel<<<blocksPerGrid, threadsPerBlock>>>(
+			coo->num_nonzeros, d_rows, d_cols, d_vals, d_x, d_y
+		);
+		// wait for kernel to finish
+		cudaDeviceSynchronize();
+	}
+	cudaMemcpy(*y, d_y, coo->num_rows * sizeof(float), cudaMemcpyDeviceToHost);
+	MPI_Reduce(*y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+	double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
+	double sec_per_iteration = msec_per_iteration / 1000.0;
+	double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
+	double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
+	
+	if (rank == 0){
+		printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs);
+	}
+	return msec_per_iteration;
+}
+
+void coo_spmv_cuda(coo_matrix* coo, float* x, float* y) {
+	// Device memory pointers
+	int *d_rows, *d_cols;
+	float *d_vals, *d_x, *d_y;
+	send_coo_spmv_data_to_gpu(coo, x, &d_rows, &d_cols, &d_vals, &d_x, &d_y);
+
+	// Launch kernel
+	int threadsPerBlock = 256;
+	int blocksPerGrid = (coo->num_nonzeros + threadsPerBlock - 1) / threadsPerBlock;
+
+	coo_spmv_kernel<<<blocksPerGrid, threadsPerBlock>>>(
+		coo->num_nonzeros, d_rows, d_cols, d_vals, d_x, d_y
+	);
+
 	// wait for kernel to finish
 	cudaDeviceSynchronize();
 
-    // Copy result back to host
-    cudaMemcpy(y, d_y, coo->num_rows * sizeof(float), cudaMemcpyDeviceToHost);
-    
-    // Cleanup
-    cudaFree(d_rows);
-    cudaFree(d_cols);
-    cudaFree(d_vals);
-    cudaFree(d_x);
-    cudaFree(d_y);
+	// Copy result back to host
+	cudaMemcpy(y, d_y, coo->num_rows * sizeof(float), cudaMemcpyDeviceToHost);
+
+	// Cleanup
+	cudaFree(d_rows);
+	cudaFree(d_cols);
+	cudaFree(d_vals);
+	cudaFree(d_x);
+	cudaFree(d_y);
 }
 
-
-// // MIN_ITER, MAX_ITER, TIME_LIMIT, 
-// double benchmark_coo_spmv(coo_matrix * coo, float* x, float* y)
-// {
-//     int num_nonzeros = coo->num_nonzeros;
-
-//     // warmup    
-//     timer time_one_iteration;
-//     timer_start(&time_one_iteration);
-// 	coo_spmv_cuda(coo, x, y);
-//     double estimated_time = seconds_elapsed(&time_one_iteration); 
-// //    printf("estimated time for once %f\n", (float) estimated_time);
-
-//     // determine # of seconds dynamically
-//     int num_iterations;
-//     num_iterations = MAX_ITER;
-
-//     if (estimated_time == 0)
-//         num_iterations = MAX_ITER;
-//     else {
-//         num_iterations = min(MAX_ITER, max(MIN_ITER, (int) (TIME_LIMIT / estimated_time)) ); 
-//     }
-//     printf("\tPerforming %d iterations\n", num_iterations);
-//     // time several SpMV iterations
-//     timer t;
-//     timer_start(&t);
-//     for(int j = 0; j < num_iterations; j++)
-// 		coo_spmv_cuda(coo, x, y);
-//     double msec_per_iteration = milliseconds_elapsed(&t) / (double) num_iterations;
-//     double sec_per_iteration = msec_per_iteration / 1000.0;
-//     double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
-//     double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
-//     printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
-
-//     return msec_per_iteration;
-// }
-
-void benchmark_coo_spmv(coo_matrix *coo, float **x, float **y, float *y_parallel){
+void benchmark_coo_spmv(coo_matrix* coo, float** x, float** y, float* y_parallel){
+	// Device memory pointers
 	_split_vals_between_nodes(coo);
 	_broadcast_data_for_x_and_y(coo, x, y);
-	timer t;
-	timer_start(&t);
-	for(int j = 0; j < 500; j++){
-		coo_spmv_cuda(coo, *x, *y);
-		MPI_Reduce(*y, y_parallel, coo->num_rows, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
-	double msec_per_iteration = milliseconds_elapsed(&t) / (double) 500;
-	if (rank == 0){
-		double sec_per_iteration = msec_per_iteration / 1000.0;
-		double GFLOPs = (sec_per_iteration == 0) ? 0 : (2.0 * (double) coo->num_nonzeros / sec_per_iteration) / 1e9;
-		double GBYTEs = (sec_per_iteration == 0) ? 0 : ((double) bytes_per_coo_spmv(coo) / sec_per_iteration) / 1e9;
-		printf("\tbenchmarking COO-SpMV: %8.4f ms ( %5.2f GFLOP/s %5.1f GB/s)\n", msec_per_iteration, GFLOPs, GBYTEs); 
-	}
+	int *d_rows, *d_cols;
+	float *d_vals, *d_x, *d_y;
+	send_coo_spmv_data_to_gpu(coo, *x, &d_rows, &d_cols, &d_vals, &d_x, &d_y);
 
+	double time = time_coo_smpv_mpi_kernal(coo, y, y_parallel, d_rows, d_cols, d_vals, d_x, d_y);
+
+	// Cleanup
+	if (d_rows != NULL) cudaFree(d_rows);
+	if (d_cols != NULL) cudaFree(d_cols);
+	if (d_vals != NULL) cudaFree(d_vals);
+	if (d_x != NULL) cudaFree(d_x);
+	if (d_y != NULL) cudaFree(d_y);
 	if (rank != 0){
-		free(*x);
-		free(*y);
+		if (*x != NULL) free(*x);
+		if (*y != NULL) free(*y);
 	}
 }
 
@@ -303,7 +298,6 @@ int main(int argc, char** argv)
 	}
 
     /* Benchmarking */
-    double coo_gflops;
     benchmark_coo_spmv(&coo, &x, &y, y_parallel);
 
     /* Test correctnesss */
@@ -320,8 +314,13 @@ int main(int argc, char** argv)
 	}
 	coo_spmv_mpi_cuda(&coo_act, &x_act, &y_act, y_parallel_act);
 	if (rank == 0){
-		float * y_exp = (float*)calloc(coo.num_rows, sizeof(float));
-		coo_spmv(&coo, x, y_exp);
+		coo_matrix coo_exp;
+		read_coo_matrix(&coo_exp, mm_filename);
+	
+		float * x_exp = (float*)malloc(coo_exp.num_cols * sizeof(float));
+		float * y_exp = (float*)calloc(coo_exp.num_rows, sizeof(float));
+		init_matrix_and_xy_vals(&coo_exp, x_exp, y_exp);
+		coo_spmv(&coo_exp, x_exp, y_exp);
 		float max_diff = 0;
 		for(int i = 0; i < coo.num_rows; i++) {
 			max_diff = max(max_diff, fabs(y_parallel_act[i] - y_exp[i]));
@@ -331,6 +330,8 @@ int main(int argc, char** argv)
 		free(x_act);
 		free(y_act);
 		free(y_parallel_act);
+		free(x_exp);
+		delete_coo_matrix(&coo_exp);
 	}
 	#endif
 
