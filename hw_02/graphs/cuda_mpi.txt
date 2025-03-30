@@ -1,0 +1,7 @@
+bfly.mtx 0.3081 ms (  0.32 GFLOP/s   2.9 GB/s)
+D6-6.mtx 0.2632 ms (  0.28 GFLOP/s   2.6 GB/s)
+dictionary28.mtx 0.2856 ms (  0.31 GFLOP/s   2.6 GB/s )
+Ga3As3H12.mtx 2.1078 ms (  1.42 GFLOP/s  11.4 GB/s)
+pkustk14.mtx 3.2188 ms (  2.30 GFLOP/s  18.5 GB/s)
+roadNet-CA.mtx 0.6436 ms (  4.30 GFLOP/s  40.5 GB/s)
+
