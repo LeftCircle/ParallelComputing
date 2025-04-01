@@ -1,0 +1,31 @@
+Running stencil with grid size 2048x2048, k: 16
+N: 2048, K: 16, B: 64
+Reference:  127ms
+Blocked:    113ms
+SIMD: 53ms
+SIMD+OMP: 30ms
+Main finished
+----------------------------------------
+Running stencil with grid size 2048x2048, k: 256
+N: 2048, K: 256, B: 64
+Reference:  5168ms
+Blocked:    2060ms
+SIMD: 321ms
+SIMD+OMP: 49ms
+Main finished
+----------------------------------------
+Running stencil with grid size 2048x2048, k: 512
+N: 2048, K: 512, B: 64
+Reference:  10682ms
+Blocked:    3677ms
+SIMD: 658ms
+SIMD+OMP: 84ms
+Main finished
+----------------------------------------
+Running stencil with grid size 2048x2048, k: 1024
+N: 2048, K: 1024, B: 64
+Reference:  18935ms
+Blocked:    6243ms
+SIMD: 1207ms
+SIMD+OMP: 123ms
+Main finished

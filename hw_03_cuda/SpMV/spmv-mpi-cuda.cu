@@ -314,8 +314,13 @@ int main(int argc, char** argv)
 	}
 	coo_spmv_mpi_cuda(&coo_act, &x_act, &y_act, y_parallel_act);
 	if (rank == 0){
-		float * y_exp = (float*)calloc(coo.num_rows, sizeof(float));
-		coo_spmv(&coo, x, y_exp);
+		coo_matrix coo_exp;
+		read_coo_matrix(&coo_exp, mm_filename);
+	
+		float * x_exp = (float*)malloc(coo_exp.num_cols * sizeof(float));
+		float * y_exp = (float*)calloc(coo_exp.num_rows, sizeof(float));
+		init_matrix_and_xy_vals(&coo_exp, x_exp, y_exp);
+		coo_spmv(&coo_exp, x_exp, y_exp);
 		float max_diff = 0;
 		for(int i = 0; i < coo.num_rows; i++) {
 			max_diff = max(max_diff, fabs(y_parallel_act[i] - y_exp[i]));
@@ -325,6 +330,8 @@ int main(int argc, char** argv)
 		free(x_act);
 		free(y_act);
 		free(y_parallel_act);
+		free(x_exp);
+		delete_coo_matrix(&coo_exp);
 	}
 	#endif
 

@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH --output=output.log
+#SBATCH --error=error.log
+#SBATCH --nodes=4
+#SBATCH --partition=rtx4060ti16g
+#SBATCH --exclusive
+
+make clean
+make
+
+# Loop through all files in test_matrices directory
+for matrix in test_matrices/*.mtx; do
+    if [ -f "$matrix" ]; then
+        echo "Running spmv-cuda with matrix: $matrix"
+        mpirun -np 4 ./spmv-mpi-cuda "$matrix"
+        echo "----------------------------------------"
+    fi
+done

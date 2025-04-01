@@ -5,6 +5,7 @@
 #include <xmmintrin.h>
 #include <assert.h>
 #include <iostream>
+#include <cstdint>
 
 
 void simd_vec_add_m128(int N, const float* __restrict__ vec_0, const float* __restrict__ vec_1,
