@@ -1,67 +1,19 @@
 average over 20 iterations
-Running spmv-spark with matrix: test_matrices/D6-6.mtx
-Matrix path: test_matrices/D6-6.mtx
 Matrix: D6-6
-25/04/07 11:46:19 WARN Utils: Your hostname, DESKTOP-0F3NS95 resolves to a loopback address: 127.0.1.1; using 172.28.245.141 instead (on interface eth0)
-25/04/07 11:46:19 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-Setting default log level to "WARN".
-To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-25/04/07 11:46:20 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-        Warmup time: 133.3272 ms
 Average time: 25.2975 ms
 ----------------------------------------
-Running spmv-spark with matrix: test_matrices/Ga3As3H12.mtx
-Matrix path: test_matrices/Ga3As3H12.mtx
 Matrix: Ga3As3H12
-25/04/07 11:46:25 WARN Utils: Your hostname, DESKTOP-0F3NS95 resolves to a loopback address: 127.0.1.1; using 172.28.245.141 instead (on interface eth0)
-25/04/07 11:46:25 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-Setting default log level to "WARN".
-To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-25/04/07 11:46:26 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-        Warmup time: 140.4142 ms
 Average time: 25.8422 ms
 ----------------------------------------
-Running spmv-spark with matrix: test_matrices/bfly.mtx
-Matrix path: test_matrices/bfly.mtx
 Matrix: bfly
-25/04/07 11:46:41 WARN Utils: Your hostname, DESKTOP-0F3NS95 resolves to a loopback address: 127.0.1.1; using 172.28.245.141 instead (on interface eth0)
-25/04/07 11:46:41 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-Setting default log level to "WARN".
-To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-25/04/07 11:46:43 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-        Warmup time: 143.0449 ms
 Average time: 25.2896 ms
 ----------------------------------------
-Running spmv-spark with matrix: test_matrices/dictionary28.mtx
-Matrix path: test_matrices/dictionary28.mtx
 Matrix: dictionary28
-25/04/07 11:46:48 WARN Utils: Your hostname, DESKTOP-0F3NS95 resolves to a loopback address: 127.0.1.1; using 172.28.245.141 instead (on interface eth0)
-25/04/07 11:46:48 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-Setting default log level to "WARN".
-To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-25/04/07 11:46:49 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-        Warmup time: 136.3378 ms
 Average time: 25.2995 ms
 ----------------------------------------
-Running spmv-spark with matrix: test_matrices/pkustk14.mtx
-Matrix path: test_matrices/pkustk14.mtx
 Matrix: pkustk14
-25/04/07 11:46:54 WARN Utils: Your hostname, DESKTOP-0F3NS95 resolves to a loopback address: 127.0.1.1; using 172.28.245.141 instead (on interface eth0)
-25/04/07 11:46:54 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-Setting default log level to "WARN".
-To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-25/04/07 11:46:56 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-        Warmup time: 134.8338 ms
 Average time: 25.3229 ms
 ----------------------------------------
-Running spmv-spark with matrix: test_matrices/roadNet-CA.mtx
-Matrix path: test_matrices/roadNet-CA.mtx
 Matrix: roadNet-CA
-25/04/07 11:47:25 WARN Utils: Your hostname, DESKTOP-0F3NS95 resolves to a loopback address: 127.0.1.1; using 172.28.245.141 instead (on interface eth0)
-25/04/07 11:47:25 WARN Utils: Set SPARK_LOCAL_IP if you need to bind to another address
-Setting default log level to "WARN".
-To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
-25/04/07 11:47:27 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
-        Warmup time: 132.9200 ms
 Average time: 26.2393 ms
 ----------------------------------------
