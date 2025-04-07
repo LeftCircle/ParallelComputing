@@ -39,7 +39,6 @@ def spmv_coo_sequential(matrix_data, vector_x, num_rows):
 	processing_time_ms = (end_time - start_time) * 1000
 	return y, processing_time_ms
 
-# --- Spark Implementation (Slightly Modified) ---
 def spmv_coo_spark(sc, num_rows, num_cols, vector_x, matrix_path=None, matrix_rdd=None):
 	"""
 	Performs Spark Sparse Matrix-Vector multiplication (y = A*x).
@@ -163,8 +162,6 @@ def load_matrix_data(matrix_path):
 		print(f"An unexpected error occurred reading matrix: {e}", file=sys.stderr)
 		return 0, 0, 0, None
 
-
-# --- Main Execution ---
 if __name__ == "__main__":
 	if len(sys.argv) != 2:
 		print("Usage: spark-submit <this_script.py> <path_to_matrix.mtx>")
