@@ -1,5 +1,4 @@
 from pyspark.sql import SparkSession
-#from pyspark.sql.SparkSession import Broadcast
 from pyspark.rdd import RDD
 import numpy as np
 from scipy.io import mmread
@@ -12,60 +11,11 @@ from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StructType, StructField, IntegerType, FloatType
 import ctypes
 import os
+import spmv_spark_helper as spmvh
 
 
-def spmv_c(coo_matrix: sparse.coo_matrix, x_vector: np.ndarray) -> np.ndarray:
-	"""
-	Call C implementation of SpMV
+logger = spmvh.ResultsWriter("spmv_spark_results.txt")
 
-	Parameters:
-		coo_matrix: Sparse matrix in COO format
-		x_vector: Input vector
-		
-	Returns:
-		Result vector
-	"""
-	# Load the shared library
-	lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "libspmv.so")
-	spmv_lib = ctypes.CDLL(lib_path)
-
-	# Define argument types
-	spmv_lib.coo_spmv.argtypes = [
-		ctypes.c_int,        # n_rows
-		ctypes.c_int,        # n_cols
-		ctypes.c_int,        # nnz
-		ctypes.POINTER(ctypes.c_int),    # rows
-		ctypes.POINTER(ctypes.c_int),    # cols
-		ctypes.POINTER(ctypes.c_float),  # vals
-		ctypes.POINTER(ctypes.c_float),  # x
-		ctypes.POINTER(ctypes.c_float)   # y
-	]
-
-	# Prepare data
-	n_rows, n_cols = coo_matrix.shape
-	nnz = coo_matrix.nnz
-
-	# Create C-compatible arrays
-	rows_array = coo_matrix.row.astype(np.int32)
-	cols_array = coo_matrix.col.astype(np.int32)
-	vals_array = coo_matrix.data.astype(np.float32)
-	x_array = x_vector.astype(np.float32)
-	y_array = np.zeros(n_rows, dtype=np.float32)
-
-	# Create C pointers
-	rows_ptr = rows_array.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-	cols_ptr = cols_array.ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-	vals_ptr = vals_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-	x_ptr = x_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-	y_ptr = y_array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-
-	# Call C function
-	time_start = time.time()
-	spmv_lib.coo_spmv(n_rows, n_cols, nnz, rows_ptr, cols_ptr, vals_ptr, x_ptr, y_ptr)
-	time_end = time.time()
-	print(f"C SpMV time: {time_end - time_start:.4f} seconds")
-
-	return y_array
 
 def read_coo_matrix(filename: str) -> sparse.coo_matrix:
 	matrix = mmread(filename)
@@ -195,28 +145,72 @@ def spmv_coo_spark_dataframe(spark: SparkSession,
 def spmv_coo_spark_partitioned(spark: SparkSession,
 							   coo_matrix: sparse.coo_matrix,
 							   x_vector: np.ndarray) -> np.ndarray:
-	# Convert COO matrix to DataFrame
-	matrix_df = spark.createDataFrame(
+	
+	num_partitions = min(200, coo_matrix.shape[0])
+
+	matrix_rdd: RDD = spark.sparkContext.parallelize(
 		zip(coo_matrix.row, coo_matrix.col, coo_matrix.data),
-		schema=["row", "col", "val"]
+		numSlices=num_partitions
 	)
 	
 	# Broadcast the vector x
 	x_broadcast = spark.sparkContext.broadcast(x_vector)
 	
-	def process_partition(partition):
-		results = []
-		for row, col, val in partition:
-			results.append((row, val * x_broadcast.value[col]))
-		return results
+	# def process_partition(partition):
+	# 	results = []
+	# 	for row, col, val in partition:
+	# 		results.append((row, val * x_broadcast.value[col]))
+	# 	return results
 
-	partial_rdd = matrix_rdd.mapPartitions(process_partition)
+	def process_partition(iterator):
+		row_sums = {}
+		for row, col, val in iterator:
+			product = val * x_broadcast.value[col]
+			if row in row_sums:
+				row_sums[row] += product
+			else:
+				row_sums[row] = product
+		return row_sums.items()
+
+	result_rdd = matrix_rdd.mapPartitions(process_partition)\
+		.reduceByKey(lambda a, b: a + b)\
+		.collect()
+	# Cleanup
+	x_broadcast.unpersist()
 	
 	# Collect results into a dense array
 	result: np.ndarray = np.zeros(coo_matrix.shape[0])
-	for row_id, value in result_df.collect():
+	for row_id, value in result_rdd.collect():
 		result[row_id] = value
 	
+	return result
+
+
+def spmv_coo_spark_chunked(spark, coo_matrix, x_vector, chunk_size=1000000):
+	result = np.zeros(coo_matrix.shape[0])
+	x_broadcast = spark.sparkContext.broadcast(x_vector)
+	
+	start = time.time()
+	# Process in chunks to avoid OOM
+	for i in range(0, coo_matrix.nnz, chunk_size):
+		end_idx = min(i + chunk_size, coo_matrix.nnz)
+		print(f"Processing chunk {i//chunk_size + 1}, elements {i}-{end_idx}")
+		matrix_rdd = spark.sparkContext.parallelize(
+			zip(coo_matrix.row[i:end_idx], 
+				coo_matrix.col[i:end_idx], 
+				coo_matrix.data[i:end_idx])
+		)
+		chunk_result = matrix_rdd.map(lambda x: (x[0], x[2] * x_broadcast.value[x[1]]))\
+								.reduceByKey(lambda a, b: a + b)\
+								.collect()
+		for row_id, value in chunk_result:
+			result[row_id] += value
+		matrix_rdd.unpersist()
+	
+	end_time = time.time()
+	logger.write(f"Chunked SpMV time: {end_time - start:.4f} seconds")
+		
+	x_broadcast.unpersist()
 	return result
 
 def benchmark_spmv_spark(spark: SparkSession,
@@ -362,13 +356,14 @@ def test_spmv_spark():
 	#row_result: np.ndarray = spmv_coo_spark_row(spark, matrix, x)
 	#spark_result: np.ndarray = spmv_coo_spark(spark, matrix, x)
 	#sequential_result: np.ndarray = sequential_spmv(matrix, x)
-	databse_result: np.ndarray = spmv_coo_spark_dataframe(spark, matrix, x)
-	c_result: np.ndarray = spmv_c(matrix, x)
+	#databse_result: np.ndarray = spmv_coo_spark_dataframe(spark, matrix, x)
+	chunked: np.ndarray = spmv_coo_spark_chunked(spark, matrix, x)
+	c_result: np.ndarray = spmvh.spmv_c(matrix, x)
 	#assert np.allclose(databse_result, sequential_result), "Results do not match!"
 	#assert np.allclose(c_result, sequential_result), "Results do not match!"
 	for i in range(len(c_result)):
-		if abs(c_result[i] - databse_result[i]) > 0.01:
-			print(f"Results do not match at index {i}: {c_result[i]} != {databse_result[i]}")
+		if abs(c_result[i] - chunked[i]) > 0.01:
+			print(f"Results do not match at index {i}: {c_result[i]} != {chunked[i]}")
 			break
 	print("Results match!")
 	
@@ -383,9 +378,13 @@ def main():
 	matrix_file: str = path_utils.get_full_path_from_relative_path(args.matrix_path)
 	matrix_file_name = path_utils.get_file_name_without_extension(matrix_file)
 	print(f"Matrix: {matrix_file_name}")
+	logger.write(f"Matrix: {matrix_file_name}\n")
 	spark = SparkSession.builder\
 			.appName("SpMV")\
 			.getOrCreate()
+	
+	# Set the log level to none
+	spark.sparkContext.setLogLevel("ERROR")
 	matrix = read_coo_matrix(matrix_file)
 	
 	# Create random vector x
@@ -394,12 +393,13 @@ def main():
 	# Run benchmark
 	#avg_time: float = benchmark_spmv_spark_dataframe(spark, matrix, x, 20)
 	#print(f"Average time: {avg_time:.4f} ms")
-	sequential_result: np.ndarray = spmv_c(matrix, x)
-	database_result: np.ndarray = spmv_coo_spark_dataframe(spark, matrix, x)
+	sequential_result: np.ndarray = spmvh.spmv_c(matrix, x)
+	chunked_result: np.ndarray = spmv_coo_spark_chunked(spark, matrix, x)
+	#database_result: np.ndarray = spmv_coo_spark_dataframe(spark, matrix, x)
 	#assert np.allclose(database_result, sequential_result), "Results do not match!"
 	for i in range(len(sequential_result)):
-		if abs(sequential_result[i] - database_result[i]) > 0.01:
-			print(f"Results do not match at index {i}: {sequential_result[i]} != {database_result[i]}")
+		if abs(sequential_result[i] - chunked_result[i]) > 0.01:
+			print(f"Results do not match at index {i}: {sequential_result[i]} != {chunked_result[i]}")
 			break
 	print("Results match!")
 

@@ -1,0 +1,6 @@
+SpMV Benchmark Results
+=====================
+
+Matrix: roadNet-CA
+
+Chunked SpMV time: 46.0035 seconds

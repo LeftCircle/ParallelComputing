@@ -1,19 +1,23 @@
-average over 20 iterations
 Matrix: D6-6
-Average time: 25.2975 ms
+C SpMV time: 0.0002 seconds
+Chunked SpMV time: 2.6303 seconds                                               
 ----------------------------------------
 Matrix: Ga3As3H12
-Average time: 25.8422 ms
+C SpMV time: 0.0078 seconds
+Chunked SpMV time: 39.6792 seconds
 ----------------------------------------
 Matrix: bfly
-Average time: 25.2896 ms
+C SpMV time: 0.0003 seconds
+Chunked SpMV time: 3.3526 seconds                                               
 ----------------------------------------
 Matrix: dictionary28
-Average time: 25.2995 ms
+C SpMV time: 0.0003 seconds
+Chunked SpMV time: 2.9031 seconds                                               
 ----------------------------------------
 Matrix: pkustk14
-Average time: 25.3229 ms
+C SpMV time: 0.0159 seconds
+Chunked SpMV time: 99.6188 seconds
 ----------------------------------------
 Matrix: roadNet-CA
-Average time: 26.2393 ms
-----------------------------------------
+C SpMV time: 0.0080 seconds
+Chunked SpMV time: 46.0035 seconds
