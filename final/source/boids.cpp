@@ -2,18 +2,76 @@
 #include <string.h>
 #include <GL/gl.h>
 #include <GL/glut.h>
+#include <Eigen/Dense>
+#include <vector>
 
 #include "tests.h"
+#include "boids_oop.h"
+#include "view.h"
+#include "controller.h"
 
-void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glBegin(GL_TRIANGLES);
-        glColor3f(1.0, 0.0, 0.0); glVertex2f(0.0, 1.0);
-        glColor3f(0.0, 1.0, 0.0); glVertex2f(-1.0, -1.0);
-        glColor3f(0.0, 0.0, 1.0); glVertex2f(1.0, -1.0);
-    glEnd();
-    glutSwapBuffers();
+const float dt = 1.0 / 60.0; // time step for simulation
+
+Eigen::Vector3d position(0, 0, 0);
+Eigen::Vector3d velocity(1, 0, 0);
+
+BoidOOP boid(position, velocity, 10.0, 1.0);
+
+std::vector<BoidOOP> boids = {boid};
+
+View view(&boids);
+
+Controller controller(&view, &boids);
+
+
+//
+// idle callback: let the Model handle simulation timestep events
+//
+void doSimulation() {
+	// Update the boid's position and velocity
+	for (BoidOOP& boid : boids) {
+		boid.update(dt);
+	}
+	static int count = 0;
+  
+	if(count == 0)         // only update the display after every displayInterval time steps
+	  glutPostRedisplay();
+	
+	//count = (count + 1) % BubbleModel.displayInterval();
 }
+
+//
+// let the View handle display events
+//
+void doDisplay(){
+	view.updateDisplay();
+}
+
+void doReshape(int width, int height){
+	view.reshapeWindow(width, height);
+}
+
+void handleKey(unsigned char key, int x, int y){
+	controller.handleKey(key, x, y);
+}
+void handleButtons(int button, int state, int x, int y){
+	controller.handleButtons(button, state, x, y);
+}
+
+void handleMotion(int x, int y) {
+	view.handleMotion(x, y);
+	glutPostRedisplay();
+}
+
+// void display() {
+//     glClear(GL_COLOR_BUFFER_BIT);
+//     glBegin(GL_TRIANGLES);
+//         glColor3f(1.0, 0.0, 0.0); glVertex2f(0.0, 1.0);
+//         glColor3f(0.0, 1.0, 0.0); glVertex2f(-1.0, -1.0);
+//         glColor3f(0.0, 0.0, 1.0); glVertex2f(1.0, -1.0);
+//     glEnd();
+//     glutSwapBuffers();
+// }
 
 int main(int argc, char** argv) {
 
@@ -23,10 +81,30 @@ int main(int argc, char** argv) {
 	}
 
 	glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    glutInitWindowSize(500, 500);
-    glutCreateWindow("OpenGL Test");
-    glutDisplayFunc(display);
-    glutMainLoop();
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	glutInitWindowSize(view.getWidth(), view.getHeight());
+	glutCreateWindow("Boids");
+	
+	// register callback to handle events
+	glutDisplayFunc(doDisplay);
+	glutReshapeFunc(doReshape);
+	glutKeyboardFunc(handleKey);
+	glutMouseFunc(handleButtons);
+	glutMotionFunc(handleMotion);
+  
+	// idle function is called whenever there are no other events to process
+	glutIdleFunc(doSimulation);
+	
+	// set up the camera viewpoint, materials, and lights
+	view.setInitialView();
+	
+	glutMainLoop();
+
+	// glutInit(&argc, argv);
+    // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    // glutInitWindowSize(500, 500);
+    // glutCreateWindow("OpenGL Test");
+    // glutDisplayFunc(display);
+    // glutMainLoop();
     return 0;
 }

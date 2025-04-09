@@ -7,6 +7,8 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <memory>
+#include <vector>
 
 #include "camera.h"
 #include "boids_oop.h"
@@ -15,81 +17,84 @@
 #define __VIEW_H__
 
 class View{
-  private:
-    const int width;                // initial window dimensions
-    const int height;               // proportions match 1080p proportions but 1/2 scale
-  
-    const float near_plane;               // distance of near clipping plane
-    const float far_plane;                // distance of far clipping plane
-    const float fov;                // camera vertical field of view
-  
-    const float modelsize;          // dimension of the teapot
-    const float modeldepth;         // initial distance of center of teapot from camera
-  
-    const float diffuse_fraction;   // fraction of reflected light that is diffuse
-    const float specular_fraction;  // fraction of reflected light that is specular
-    const float shininess;          // specular exponent
+private:
+	const int width;                // initial window dimensions
+	const int height;               // proportions match 1080p proportions but 1/2 scale
 
-    // colors used for lights, and screen background
-    const float white[4];
-    const float dim_white[4];
-    const float grey_background[4];
+	const float near_plane;               // distance of near clipping plane
+	const float far_plane;                // distance of far clipping plane
+	const float fov;                // camera vertical field of view
 
-    // colors used for materials
-    const float base_color[3];
-    const float highlight_color[3];
+	const float modelsize;          // dimension of the teapot
+	const float modeldepth;         // initial distance of center of teapot from camera
 
-    // The perspective camera
-    Camera *camera;
-  
-    // The simulation model
-    //Model *themodel;
+	const float diffuse_fraction;   // fraction of reflected light that is diffuse
+	const float specular_fraction;  // fraction of reflected light that is specular
+	const float shininess;          // specular exponent
 
-    // Switches to turn lights on and off
-    bool KeyOn;
-    bool FillOn;
-    bool BackOn;
-  
-    // Switch to determine background color
-    bool BackgroundGrey;
+	// colors used for lights, and screen background
+	const float white[4];
+	const float dim_white[4];
+	const float grey_background[4];
 
-    // Current window dimensions
-    int Width;
-    int Height;
+	// colors used for materials
+	const float base_color[3];
+	const float highlight_color[3];
 
-    // position the lights, never called outside of this class
-    void setLights();
-  
-   // draw the model, never called outside of this class
-    void drawModel();
-  
-  public:
-    View();
-  
-    // initialize the state of the viewer to start-up defaults
-    void setInitialView();
+	// The perspective camera
+	Camera* camera;
 
-    // Toggle lights on/off
-    void toggleKeyLight();
-    void toggleFillLight();
-    void toggleBackLight();
-  
-    // Toggle background color grey/black
-    void toggleBackColor();
+	// The simulation model
+	//Model *themodel;
+	std::vector<BoidOOP>* boids;
 
-    // Handlers for mouse events
-    void handleButtons(int button, int state, int x, int y, bool shiftkey);
-    void handleMotion(int x, int y);
-  
-    // redraw the display
-    void updateDisplay();
+	// Switches to turn lights on and off
+	bool KeyOn;
+	bool FillOn;
+	bool BackOn;
 
-    // handle window resizing, to keep consistent viewscreen proportions
-    void reshapeWindow(int width, int height);
-  
-    // accessors to determine current screen width and height
-    int getWidth(){return Width;}
-    int getHeight(){return Height;}
+	// Switch to determine background color
+	bool BackgroundGrey;
+
+	// Current window dimensions
+	int Width;
+	int Height;
+
+	// position the lights, never called outside of this class
+	void setLights();
+
+	// draw the model, never called outside of this class
+	void drawModel();
+
+
+public:
+	View(std::vector<BoidOOP>* boids_ptr);
+	~View();
+
+	// initialize the state of the viewer to start-up defaults
+	void setInitialView();
+
+	// Toggle lights on/off
+	void toggleKeyLight();
+	void toggleFillLight();
+	void toggleBackLight();
+
+	// Toggle background color grey/black
+	void toggleBackColor();
+
+	// Handlers for mouse events
+	void handleButtons(int button, int state, int x, int y, bool shiftkey);
+	void handleMotion(int x, int y);
+
+	// redraw the display
+	void updateDisplay();
+
+	// handle window resizing, to keep consistent viewscreen proportions
+	void reshapeWindow(int width, int height);
+
+	// accessors to determine current screen width and height
+	int getWidth(){return Width;}
+	int getHeight(){return Height;}
 };
 
 #endif
