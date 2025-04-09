@@ -15,11 +15,13 @@ be used to draw the boid on the screen either with OpenGL or as a plugin to Godo
 #include <Eigen/Dense>
 
 
-class Boid {
+class BoidOOP {
 private:
-	std::vector<float> position = {0.0f, 0.0f, 0.0f};
-
-
+	Eigen::Vector3d position; 
+	Eigen::Vector3d velocity; 
+	Eigen::Vector3d acceleration; 
+	double maxSpeed; 
+	double maxForce; 
 };
 
 

@@ -1,10 +1,11 @@
 CC = g++
 
-#CCFLAGS = -std=c++2a -O3 -ffast-math -msse4.2 -fopenmp -lm 
 CCFLAGS = -std=c++2a -O3 -ffast-math -msse4.2 -fopenmp -lm -g
+#Add OpenGL and freeglut
+LDFLAGS = -lGL -lGLU -lglut -lm
 INCLUDES = -I./include -I/usr/include/eigen3
 
-SRC_DIR = src
+SRC_DIR = source
 INC_DIR = include
 OBJ_DIR = obj
 
@@ -13,7 +14,7 @@ OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 TARGET = boids
 
-all: directories stencil
+all: directories $(TARGET)
 
 directories:
 ifeq ($(OS),Windows_NT)
@@ -22,8 +23,8 @@ else
 	mkdir -p $(OBJ_DIR)
 endif
 
-stencil: $(OBJECTS)
-	$(CC) $(CCFLAGS) -o $@ $^
+$(TARGET): $(OBJECTS)
+	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(INC_DIR)/*.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
@@ -42,7 +43,3 @@ else
 	rm -rf $(OBJ_DIR) $(TARGET)
 endif
 
-
-
-# clean:
-# 	rm -rf stencil
