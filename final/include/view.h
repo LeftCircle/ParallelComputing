@@ -68,6 +68,7 @@ private:
 
 
 public:
+	View();
 	View(std::vector<BoidOOP>* boids_ptr);
 	~View();
 

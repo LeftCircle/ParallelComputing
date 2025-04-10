@@ -9,19 +9,21 @@
 #include "boids_oop.h"
 #include "view.h"
 #include "controller.h"
+#include "scene.h"
 
 const float dt = 1.0 / 60.0; // time step for simulation
 
-Eigen::Vector3d position(0, 0, 0);
-Eigen::Vector3d velocity(1, 0, 0);
+// Eigen::Vector3d position(0, 0, 0);
+// Eigen::Vector3d velocity(1, 0, 0);
 
-BoidOOP boid(position, velocity, 10.0, 1.0);
+// BoidOOP boid(position, velocity, 10.0, 1.0);
 
-std::vector<BoidOOP> boids = {boid};
+// std::vector<BoidOOP> boids = {boid};
 
-View view(&boids);
+// View view(&boids);
 
-Controller controller(&view, &boids);
+// Controller controller(&view, &boids);
+Scene scene(100); // Create a scene with 100 boids
 
 
 //
@@ -29,7 +31,7 @@ Controller controller(&view, &boids);
 //
 void doSimulation() {
 	// Update the boid's position and velocity
-	for (BoidOOP& boid : boids) {
+	for (BoidOOP& boid : scene.boids) {
 		boid.update(dt);
 	}
 	static int count = 0;
@@ -44,34 +46,24 @@ void doSimulation() {
 // let the View handle display events
 //
 void doDisplay(){
-	view.updateDisplay();
+	scene.view->updateDisplay();
 }
 
 void doReshape(int width, int height){
-	view.reshapeWindow(width, height);
+	scene.view->reshapeWindow(width, height);
 }
 
 void handleKey(unsigned char key, int x, int y){
-	controller.handleKey(key, x, y);
+	scene.controller->handleKey(key, x, y);
 }
 void handleButtons(int button, int state, int x, int y){
-	controller.handleButtons(button, state, x, y);
+	scene.controller->handleButtons(button, state, x, y);
 }
 
 void handleMotion(int x, int y) {
-	view.handleMotion(x, y);
+	scene.view->handleMotion(x, y);
 	glutPostRedisplay();
 }
-
-// void display() {
-//     glClear(GL_COLOR_BUFFER_BIT);
-//     glBegin(GL_TRIANGLES);
-//         glColor3f(1.0, 0.0, 0.0); glVertex2f(0.0, 1.0);
-//         glColor3f(0.0, 1.0, 0.0); glVertex2f(-1.0, -1.0);
-//         glColor3f(0.0, 0.0, 1.0); glVertex2f(1.0, -1.0);
-//     glEnd();
-//     glutSwapBuffers();
-// }
 
 int main(int argc, char** argv) {
 
@@ -82,7 +74,7 @@ int main(int argc, char** argv) {
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
-	glutInitWindowSize(view.getWidth(), view.getHeight());
+	glutInitWindowSize(scene.view->getWidth(), scene.view->getHeight());
 	glutCreateWindow("Boids");
 	
 	// register callback to handle events
@@ -96,15 +88,9 @@ int main(int argc, char** argv) {
 	glutIdleFunc(doSimulation);
 	
 	// set up the camera viewpoint, materials, and lights
-	view.setInitialView();
+	scene.view->setInitialView();
 	
 	glutMainLoop();
 
-	// glutInit(&argc, argv);
-    // glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    // glutInitWindowSize(500, 500);
-    // glutCreateWindow("OpenGL Test");
-    // glutDisplayFunc(display);
-    // glutMainLoop();
     return 0;
 }

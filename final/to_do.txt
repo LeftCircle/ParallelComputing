@@ -1,0 +1,116 @@
+Send boid data to the gpu once then update global positions with a shader:
+
+// One-time setup
+void setupBoidModel() {
+    // Create VBO for boid model vertices
+    glGenBuffers(1, &boidVertexVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, boidVertexVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(localVertices), localVertices, GL_STATIC_DRAW);
+    
+    // Create VBO for instance data (positions, orientations)
+    glGenBuffers(1, &instanceVBO);
+}
+
+// Per-frame update
+void renderBoids() {
+    // Update instance data with current boid positions/orientations
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(boidInstances), boidInstances, GL_STREAM_DRAW);
+    
+    // Draw all boids in one call
+    glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, boidCount);
+}
+- Create Vertex Buffer Object for the boid model (once)
+- Create a Shader Program that handles:
+- Model transformation using instance data
+- Lighting calculations
+- Use Instanced Rendering to draw all boids in a single draw call
+
+
+
+
+- CLaude suggestions for implementing ^^
+// Initialize the shaders and vertex buffers
+void initBoidRendering() {
+    // Compile and link shaders (code omitted for brevity)
+    
+    // Create and setup the vertex array object (VAO)
+    glGenVertexArrays(1, &boidVAO);
+    glBindVertexArray(boidVAO);
+    
+    // Setup vertex positions
+    glGenBuffers(1, &vertexVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(boidVertices), boidVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    // Setup vertex normals
+    glGenBuffers(1, &normalVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(boidNormals), boidNormals, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    
+    // Setup instance data buffer
+    glGenBuffers(1, &instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    
+    // Position attribute (per instance)
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(BoidInstance), (void*)0);
+    glVertexAttribDivisor(2, 1);
+    
+    // Rotation attribute (per instance)
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(BoidInstance), (void*)(3 * sizeof(float)));
+    glVertexAttribDivisor(3, 1);
+    
+    // Color attribute (per instance)
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(BoidInstance), (void*)(7 * sizeof(float)));
+    glVertexAttribDivisor(4, 1);
+}
+
+struct BoidInstance {
+    float x, y, z;           // Position
+    float qx, qy, qz, qw;    // Rotation quaternion
+    float r, g, b;           // Color
+};
+
+void renderBoids(const std::vector<BoidOOP>& boids) {
+    // Update instance data
+    std::vector<BoidInstance> instances;
+    instances.reserve(boids.size());
+    
+    for (const BoidOOP& boid : boids) {
+        BoidInstance instance;
+        
+        // Get position
+        Eigen::Vector3d pos = boid.getPosition();
+        instance.x = pos[0];
+        instance.y = pos[1];
+        instance.z = pos[2];
+        
+        // Calculate orientation quaternion from velocity
+        Eigen::Vector3d vel = boid.getVelocity();
+        // TODO: Convert velocity direction to quaternion
+        
+        // Set color (could be based on velocity, team, etc.)
+        instance.r = 0.7f;
+        instance.g = 0.7f;
+        instance.b = 1.0f;
+        
+        instances.push_back(instance);
+    }
+    
+    // Update instance buffer
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, instances.size() * sizeof(BoidInstance), instances.data(), GL_STREAM_DRAW);
+    
+    // Draw all boids in one call
+    glUseProgram(shaderProgram);
+    glBindVertexArray(boidVAO);
+    glDrawArraysInstanced(GL_TRIANGLES, 0, boidVertexCount, instances.size());
+}
+
