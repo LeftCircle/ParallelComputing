@@ -15,6 +15,8 @@ be used to draw the boid on the screen either with OpenGL or as a plugin to Godo
 #include <Eigen/Dense>
 
 
+inline const char* default_obj_path = "assets/cone.obj";
+
 class BoidOOP {
 public:
 	// The boids model, which is just a triangular prism
@@ -46,6 +48,8 @@ public:
 		Eigen::Vector3d(0, 0, -1),
 		Eigen::Vector3d(-1, 1, 0)
 	};
+
+	
 
 private:
 	Eigen::Vector3d position; 

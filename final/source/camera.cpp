@@ -149,8 +149,8 @@ void Camera::SetUp(const Vector3d &U) {
 void Camera::SetClippingPlanes(float Near, float Far) {
   const float epsilon = 0.0001;
   
-  NearPlane = Max(epsilon, Near); // Near must not be 0 or negative
-  FarPlane = Max(Near, Far);      // Far must not be smaller than Near
+  NearPlane = max(epsilon, Near); // Near must not be 0 or negative
+  FarPlane = max(Near, Far);      // Far must not be smaller than Near
 }
 
 /*
@@ -158,7 +158,8 @@ void Camera::SetClippingPlanes(float Near, float Far) {
  * Fov constrainted to be between 1 and 179 degrees
  */
 void Camera::SetFOV(float ViewAngle) {
-  Fov = Min(Max(ViewAngle, 1.0), 179.0);
+	float max_angle = max(ViewAngle, 1.0f);
+	Fov = min(max_angle, 179.0f);
 }
 
 /*

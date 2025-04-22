@@ -1,6 +1,5 @@
 #include "boids_oop.h"
 
-
 BoidOOP::BoidOOP(Eigen::Vector3d& new_position, Eigen::Vector3d& new_velocity, double maxSpeed, double maxForce){
 	position = new_position;
 	velocity = new_velocity;

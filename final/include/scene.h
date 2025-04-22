@@ -8,19 +8,17 @@
 #include "boids_oop.h"
 #include "view.h"
 #include "controller.h"
+#include "vector.h"
 
 
-// Eigen::Vector3d position(0, 0, 0);
-// Eigen::Vector3d velocity(1, 0, 0);
+const Vector3d WORLD_MIN(-100, -100, -100);
+const Vector3d WORLD_MAX(100, 100, 100);
+const float MAX_SPEED = 0.25;
+const float MAX_FORCE = 1.0;
 
-// BoidOOP boid(position, velocity, 10.0, 1.0);
 
-// std::vector<BoidOOP> boids = {boid};
-
-// View view(&boids);
-
-// Controller controller(&view, &boids);
-
+float randf_range(float low, float high);
+Vector3d rand_vec3d(const Vector3d& min, const Vector3d& max);
 
 class Scene {
 public:

@@ -21,13 +21,16 @@
 #define HUGENUMBER	1.0e10
 
 /* Miscellaneous Scalar Math */
-#define Abs(x)		(((x) < 0) ? (-(x)) : (x))
+//#define Abs(x)		(((x) < 0) ? (-(x)) : (x))
+template<typename T> inline T Abs(T x) { return x < 0 ? -x : x; }
 #define Sqr(x)		((x) * (x))
-#define Min(x1,x2)	((x1)<(x2)?(x1):(x2))
-#define Max(x1,x2)	((x1)>(x2)?(x1):(x2))
+//#define Min(x1,x2)	((x1)<(x2)?(x1):(x2))
+//#define Max(x1,x2)	((x1)>(x2)?(x1):(x2))
 #define Round(x, p)	(((int)((x)*pow(10.0,p)+((x)<0?-0.5:0.5)))/pow(10.0,p))
 #define Sign(x)		((x)>=0? 1: -1)
-#define Swap(x1, x2)	{int tmp=x1; x1=x2; x2=tmp}
+//#define Swap(x1, x2)	{int tmp=x1; x1=x2; x2=tmp}
+template<typename T> inline void Swap(T &x1, T &x2) { T tmp = x1; x1 = x2; x2 = tmp; }
+
 #define ApplySign(x, y)	((y) >= 0? Abs(x): -Abs(x))
 
 /* Angle Conversions & Constants */
@@ -72,5 +75,8 @@ void error(const string &s1, const string &s2 = "", const string &s3 = "");
 
 // print error(s1, s2, s3) and then exit program with code 1 
 void abort(const string &s1, const string &s2 = "", const string &s3 = "");
+
+// returns a random float between low and high
+float randf(float low, float high);
 
 #endif

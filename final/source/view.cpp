@@ -277,3 +277,7 @@ void View::reshapeWindow(int w, int h){
 	// set up camera projection matrix
 	camera->PerspectiveDisplay(Width, Height);
 }
+
+void View::register_obj_mesh(const char* obj_path){
+		
+}

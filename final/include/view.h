@@ -12,6 +12,7 @@
 
 #include "camera.h"
 #include "boids_oop.h"
+#include "rcObjModifier.h"
 
 #ifndef __VIEW_H__
 #define __VIEW_H__
@@ -96,6 +97,8 @@ public:
 	// accessors to determine current screen width and height
 	int getWidth(){return Width;}
 	int getHeight(){return Height;}
+
+	void register_obj_mesh(const char* obj_path);
 };
 
 #endif
