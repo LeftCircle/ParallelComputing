@@ -2,7 +2,7 @@ CC = g++
 
 CCFLAGS = -std=c++2a -O3 -ffast-math -msse4.2 -fopenmp -lm -g
 #Add OpenGL and freeglut
-LDFLAGS = -lGL -lGLU -lglut -lm
+LDFLAGS = -lGL -lGLU -lglut -lGLEW -lm
 
 # Find all subdirectories in include
 INCLUDE_DIRS := $(shell find ./include -type d)

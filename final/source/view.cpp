@@ -279,5 +279,79 @@ void View::reshapeWindow(int w, int h){
 }
 
 void View::register_obj_mesh(const char* obj_path){
-		
+	rc::rcTriMeshForGL mesh;
+	bool success = mesh.LoadFromFileObj(obj_path);
+	if (!success) {
+		std::cerr << "Failed to load mesh from file: " << obj_path << std::endl;
+		return;
+	}
+	mesh.obj_to_gl_elements();
+	_bind_mesh(mesh);
+}
+
+void View::_bind_mesh(rc::rcTriMeshForGL& mesh){
+	_bind_buffers(mesh);
+	_bind_textures(mesh);
+}
+
+void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
+	// Create vertex array object
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	GLuint v_vbo, vn_vbo, vt_vbo, ebuffer;
+
+	glGenBuffers(1, &v_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, v_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.V_vbo(0), GL_STATIC_DRAW);
+
+	glGenBuffers(1, &vn_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vn_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.VN_vbo(0), GL_STATIC_DRAW);
+
+	glGenBuffers(1, &vt_vbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vt_vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.VT_vbo(0), GL_STATIC_DRAW);
+
+	glGenBuffers(1, &ebuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * mesh.get_n_elements(), &mesh.E(0), GL_STATIC_DRAW);
+	
+	// Load the shaders with cy calls
+	//bool shader_comp_success = scene.program.BuildFiles("shader.vert", "shader.frag");
+	//scene.program.Bind();
+
+	// scene.program.SetAttribBuffer("position", v_vbo, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// scene.program.SetAttribBuffer("normal", vn_vbo, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// scene.program.SetAttribBuffer("textCoord", vt_vbo, 3, GL_FLOAT, GL_FALSE, 0, 0);
+}
+
+void View::_bind_textures(rc::rcTriMeshForGL& mesh){
+	// Load the texture
+	cy::TriMesh::Mtl const& mtl = mesh.M(0);
+	rc::Texture texture(mtl.map_Ka.data);
+	_bind_material(mesh, texture, 0, "tex");
+
+	rc::Texture diffuse_texture(mtl.map_Kd.data);
+	_bind_material(mesh, diffuse_texture, 1, "diffuse_map");
+	
+	rc::Texture specular_texture(mtl.map_Ks.data);
+	_bind_material(mesh, specular_texture, 2, "specular_map");
+
+	// Now for the material parts
+	// scene.program["intensity_k_diffuse"] = cy::Vec3f(mtl.Kd[0], mtl.Kd[1], mtl.Kd[2]);
+	// scene.program["intensity_k_ambient"] = cy::Vec3f(mtl.Ka[0], mtl.Ka[1], mtl.Ka[2]);
+	// scene.program["intensity_k_specular"] = cy::Vec3f(mtl.Ks[0], mtl.Ks[1], mtl.Ks[2]);
+	// scene.program["shininess"] = mtl.Ns;
+}
+
+void View::_bind_material(rc::rcTriMeshForGL& mesh, rc::Texture& texture, const int texture_id, const char* sampler_name)
+{
+	cyGLTexture2D tex;
+	tex.Initialize();
+	tex.SetImage(texture.data_const_ptr(), 4, texture.width(), texture.height());
+	tex.BuildMipmaps();
+	tex.Bind(texture_id);
+	//scene.program[sampler_name] = texture_id;
 }

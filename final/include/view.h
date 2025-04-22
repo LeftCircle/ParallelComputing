@@ -5,6 +5,9 @@
  Interface for Teapot-Bubble Viewer
 */
 
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+
 #include <cstdlib>
 #include <cstdio>
 #include <memory>
@@ -13,6 +16,8 @@
 #include "camera.h"
 #include "boids_oop.h"
 #include "rcObjModifier.h"
+#include "rcTexture.h"
+#include "cyGL.h"
 
 #ifndef __VIEW_H__
 #define __VIEW_H__
@@ -66,6 +71,10 @@ private:
 
 	// draw the model, never called outside of this class
 	void drawModel();
+	void _bind_mesh(rc::rcTriMeshForGL& mesh);
+	void _bind_buffers(rc::rcTriMeshForGL& mesh);
+	void _bind_textures(rc::rcTriMeshForGL& mesh);
+	void _bind_material(rc::rcTriMeshForGL& mesh, rc::Texture& texture, const int texture_id, const char* sampler_name);
 
 
 public:
@@ -99,6 +108,7 @@ public:
 	int getHeight(){return Height;}
 
 	void register_obj_mesh(const char* obj_path);
+	
 };
 
 #endif

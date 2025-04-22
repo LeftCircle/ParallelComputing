@@ -1,15 +1,7 @@
-#include <iostream>
-#include <string.h>
-#include <GL/gl.h>
-#include <GL/glut.h>
-#include <Eigen/Dense>
-#include <vector>
+//#include <GL/glew.h>
+//#include <GL/freeglut.h>
 
-#include "tests.h"
-#include "boids_oop.h"
-#include "view.h"
-#include "controller.h"
-#include "scene.h"
+#include "boids.h"
 
 const float dt = 1.0 / 60.0; // time step for simulation
 
@@ -76,6 +68,7 @@ int main(int argc, char** argv) {
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(scene.view->getWidth(), scene.view->getHeight());
 	glutCreateWindow("Boids");
+	glewInit();
 	
 	// register callback to handle events
 	glutDisplayFunc(doDisplay);
