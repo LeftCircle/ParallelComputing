@@ -1,8 +1,6 @@
 #include "scene.h"
 
 
-
-
 Scene::Scene(int n_boids){
 	// Initialize the view and controller
 	view = new View(&boids);
@@ -17,6 +15,7 @@ Scene::Scene(int n_boids){
 		// Create a new boid and add it to the vector
 		boids.emplace_back(position, velocity, MAX_SPEED, MAX_FORCE);
 	}
+	view->init_boid_rendering(n_boids);
 }
 
 Scene::~Scene(){

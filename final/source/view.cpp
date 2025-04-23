@@ -201,14 +201,44 @@ void View::toggleBackColor(){
 
 // draws the boids
 void View::drawModel(){
-	for (BoidOOP& boid : *boids) {	
-		std::vector<Eigen::Vector3d> global_coords = boid.get_global_coordinates();
-		glBegin(GL_TRIANGLES);
-		for (const Eigen::Vector3d& vertex : global_coords) {
-			glVertex3f(vertex[0], vertex[1], vertex[2]);
-		}
-		glEnd();
+	// for (BoidOOP& boid : *boids) {	
+	// 	std::vector<Eigen::Vector3d> global_coords = boid.get_global_coordinates();
+	// 	glBegin(GL_TRIANGLES);
+	// 	for (const Eigen::Vector3d& vertex : global_coords) {
+	// 		glVertex3f(vertex[0], vertex[1], vertex[2]);
+	// 	}
+	// 	glEnd();
+	// }
+
+	// Set the model and view matrix
+	program.SetUniform("view", camera->get_view_matrix());
+	program.SetUniform("projection", camera->get_projection_matrix());
+
+	// TODO -> don't create the pos vector each frame
+	std::vector<Eigen::Vector3d> positions;
+	positions.reserve(boids->size());
+	for (const BoidOOP& boid : *boids) {
+		positions.push_back(boid.getPosition());
 	}
+	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
+	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Eigen::Vector3d) * positions.size(), positions.data());
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * positions.size(), positions.data(), GL_STREAM_DRAW);
+
+	// Draw all boids with instanced rendering
+	glBindVertexArray(boidVAO);
+	glDrawElementsInstanced(
+		GL_TRIANGLES,
+		_meshes[0].get_n_elements(), // Number of indices
+		GL_UNSIGNED_INT,
+		0, // offset in the EBO
+		positions.size() // Number of instances
+	);
+
+	// Not the best method since the boids aren't linked to the mesh type. Right now really
+	// only supports one mesh
+	// for (rc::rcTriMeshForGL& mesh : _meshes) {
+	// 	glDrawElements(GL_TRIANGLES, mesh.get_n_elements(), GL_UNSIGNED_INT, 0);
+	// }
 }
 
 //
@@ -280,6 +310,7 @@ void View::reshapeWindow(int w, int h){
 
 void View::register_obj_mesh(const char* obj_path){
 	rc::rcTriMeshForGL mesh;
+	_meshes.push_back(mesh);
 	bool success = mesh.LoadFromFileObj(obj_path);
 	if (!success) {
 		std::cerr << "Failed to load mesh from file: " << obj_path << std::endl;
@@ -295,36 +326,37 @@ void View::_bind_mesh(rc::rcTriMeshForGL& mesh){
 }
 
 void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
-	// Create vertex array object
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+	// TODO -> register the VAO to the mesh for later use
+	// For now we are just using the boid vao - same for vbos
+	glGenVertexArrays(1, &boidVAO);
+	glBindVertexArray(boidVAO);
 
-	GLuint v_vbo, vn_vbo, vt_vbo, ebuffer;
+	//GLuint v_vbo, vn_vbo, vt_vbo, ebuffer;
+	GLuint ebuffer;
 
-	glGenBuffers(1, &v_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, v_vbo);
+	glGenBuffers(1, &vertexVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.V_vbo(0), GL_STATIC_DRAW);
 
-	glGenBuffers(1, &vn_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vn_vbo);
+	glGenBuffers(1, &normalVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.VN_vbo(0), GL_STATIC_DRAW);
 
-	glGenBuffers(1, &vt_vbo);
-	glBindBuffer(GL_ARRAY_BUFFER, vt_vbo);
+	glGenBuffers(1, &texVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, texVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.VT_vbo(0), GL_STATIC_DRAW);
 
 	glGenBuffers(1, &ebuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * mesh.get_n_elements(), &mesh.E(0), GL_STATIC_DRAW);
-	
-	// Load the shaders with cy calls
-	//bool shader_comp_success = scene.program.BuildFiles("shader.vert", "shader.frag");
-	//scene.program.Bind();
 
-	// scene.program.SetAttribBuffer("position", v_vbo, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	// scene.program.SetAttribBuffer("normal", vn_vbo, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	// scene.program.SetAttribBuffer("textCoord", vt_vbo, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// Load the shaders with cy calls
+	bool shader_comp_success = program.BuildFiles("shaders/boid_batch.vert", "shaders/boid_batch.frag");
+	program.Bind();
+
+	program.SetAttribBuffer("vertex_position", vertexVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	program.SetAttribBuffer("vertex_normal", normalVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	program.SetAttribBuffer("vertex_text_coord", texVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void View::_bind_textures(rc::rcTriMeshForGL& mesh){
@@ -340,10 +372,10 @@ void View::_bind_textures(rc::rcTriMeshForGL& mesh){
 	_bind_material(mesh, specular_texture, 2, "specular_map");
 
 	// Now for the material parts
-	// scene.program["intensity_k_diffuse"] = cy::Vec3f(mtl.Kd[0], mtl.Kd[1], mtl.Kd[2]);
-	// scene.program["intensity_k_ambient"] = cy::Vec3f(mtl.Ka[0], mtl.Ka[1], mtl.Ka[2]);
-	// scene.program["intensity_k_specular"] = cy::Vec3f(mtl.Ks[0], mtl.Ks[1], mtl.Ks[2]);
-	// scene.program["shininess"] = mtl.Ns;
+	program["intensity_k_diffuse"] = cy::Vec3f(0.4, 0.4, 0.4);//cy::Vec3f(mtl.Kd[0], mtl.Kd[1], mtl.Kd[2]);
+	program["intensity_k_ambient"] = cy::Vec3f(0.2);//cy::Vec3f(mtl.Ka[0], mtl.Ka[1], mtl.Ka[2]);
+	program["intensity_k_specular"] = cy::Vec3f(0.9);//cy::Vec3f(mtl.Ks[0], mtl.Ks[1], mtl.Ks[2]);
+	program["shininess"] = 10.0; //mtl.Ns;
 }
 
 void View::_bind_material(rc::rcTriMeshForGL& mesh, rc::Texture& texture, const int texture_id, const char* sampler_name)
@@ -353,5 +385,26 @@ void View::_bind_material(rc::rcTriMeshForGL& mesh, rc::Texture& texture, const 
 	tex.SetImage(texture.data_const_ptr(), 4, texture.width(), texture.height());
 	tex.BuildMipmaps();
 	tex.Bind(texture_id);
-	//scene.program[sampler_name] = texture_id;
+	program[sampler_name] = texture_id;
+}
+
+void View::init_boid_rendering(const int n_boids){
+	// Create the instance buffer
+	glGenBuffers(1, &isntanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * n_boids, NULL, GL_STREAM_DRAW);
+
+	// Configure instance attributes
+    // Position attribute (layout location = 3 in your shader)
+    glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3, 3, GL_DOUBLE, GL_FALSE, sizeof(Eigen::Vector3d), (void*)0);
+	glVertexAttribDivisor(3, 1); // Update this attribute per instance
+
+	// TODO -> Might have to set rotation and color and stuff here?
+    
+
+    
+    // Make sure to bind back to your main VAO
+    glBindVertexArray(boidVAO);
 }

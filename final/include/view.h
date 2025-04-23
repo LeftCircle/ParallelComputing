@@ -66,6 +66,17 @@ private:
 	int Width;
 	int Height;
 
+	// cy program for handling shader compilation
+	cy::GLSLProgram program;
+
+	std::vector<rc::rcTriMeshForGL> _meshes;
+
+	GLuint isntanceVBO;
+	GLuint vertexVBO;
+	GLuint normalVBO;
+	GLuint texVBO;
+	GLuint boidVAO;
+
 	// position the lights, never called outside of this class
 	void setLights();
 
@@ -108,6 +119,8 @@ public:
 	int getHeight(){return Height;}
 
 	void register_obj_mesh(const char* obj_path);
+
+	void init_boid_rendering(const int n_boids);
 	
 };
 

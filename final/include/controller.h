@@ -1,7 +1,9 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <GL/glut.h>
+//#include <GL/glut.h>
+#include <GL/glew.h>
+#include <GL/freeglut.h>
 
 #include <vector>
 

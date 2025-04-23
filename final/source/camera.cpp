@@ -340,3 +340,18 @@ void Camera::HandleMouseMotion(int x, int y) {
   }
 }
 
+cy::Matrix4f Camera::get_view_matrix() {
+	cy::Vec3f pos = cy::Vec3f(Pos.x, Pos.y, Pos.z);
+	cy::Vec3f target = cy::Vec3f(Aim.x, Aim.y, Aim.z);
+	cy::Vec3f up = cy::Vec3f(Up.x, Up.y, Up.z);
+
+  	cy::Matrix4f view_matrix;
+  	view_matrix.SetView(pos, target, up);
+  	return view_matrix;
+}
+
+cy::Matrix4f Camera::get_projection_matrix() {
+	cy::Matrix4f projection_matrix;
+	projection_matrix.SetPerspective(Fov, 1.0f, NearPlane, FarPlane);
+	return projection_matrix;
+}

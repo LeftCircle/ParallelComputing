@@ -13,7 +13,11 @@
 #ifndef __CAMERA_H__
 #define __CAMERA_H__
 
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+
 #include "vector.h"
+#include "cyMatrix.h"
 
 class Camera {
 private:
@@ -37,6 +41,9 @@ private:
   Vector3d Pos;
   Vector3d Aim;
   Vector3d Up;
+
+  cy::Matrix4f view_matrix;
+  cy::Matrix4f projection_matrix;
   
   // current camera translation
   double TranslateX;
@@ -106,6 +113,9 @@ public:
 
   // function that handles mouse movements
   void HandleMouseMotion(int x, int y);
+
+  cy::Matrix4f get_view_matrix();
+  cy::Matrix4f get_projection_matrix();
 };
 
 #endif

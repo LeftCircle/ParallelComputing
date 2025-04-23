@@ -1,20 +1,21 @@
-//#include <GL/glew.h>
-//#include <GL/freeglut.h>
+#include <GL/glew.h>
+#include <GL/freeglut.h>
 
-#include "boids.h"
+#include <iostream>
+#include <string.h>
+//#include <GL/gl.h>
+//#include <GL/glut.h>
+#include <Eigen/Dense>
+#include <vector>
+
+#include "tests.h"
+#include "boids_oop.h"
+#include "view.h"
+#include "controller.h"
+#include "scene.h"
 
 const float dt = 1.0 / 60.0; // time step for simulation
 
-// Eigen::Vector3d position(0, 0, 0);
-// Eigen::Vector3d velocity(1, 0, 0);
-
-// BoidOOP boid(position, velocity, 10.0, 1.0);
-
-// std::vector<BoidOOP> boids = {boid};
-
-// View view(&boids);
-
-// Controller controller(&view, &boids);
 Scene scene(100); // Create a scene with 100 boids
 
 
@@ -69,6 +70,7 @@ int main(int argc, char** argv) {
 	glutInitWindowSize(scene.view->getWidth(), scene.view->getHeight());
 	glutCreateWindow("Boids");
 	glewInit();
+	CY_GL_REGISTER_DEBUG_CALLBACK;
 	
 	// register callback to handle events
 	glutDisplayFunc(doDisplay);
@@ -82,6 +84,7 @@ int main(int argc, char** argv) {
 	
 	// set up the camera viewpoint, materials, and lights
 	scene.view->setInitialView();
+	scene.view->register_obj_mesh(default_obj_path);
 	
 	glutMainLoop();
 

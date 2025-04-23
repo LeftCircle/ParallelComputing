@@ -9,7 +9,7 @@ namespace rc{
 
 //Example 2 -> From the lodepng documentation
 //Load PNG file from disk to memory first, then decode to raw pixels in memory.
-void decodeTwoSteps(const char* filename) {
+inline void decodeTwoSteps(const char* filename) {
   std::vector<unsigned char> png;
   std::vector<unsigned char> image; //the raw pixels
   unsigned width, height;

@@ -1,22 +1,33 @@
 #version 330 core
 
 // Input vertex data (local boid model)
-layout(location = 0) in vec3 vertexPosition;
-layout(location = 1) in vec3 vertexNormal;
+layout(location = 0) in vec3 vertex_position;
+layout(location = 1) in vec3 vertex_normal;
+layout(location = 2) in vec2 vertex_texcoord;
 
 // Per-instance data
-layout(location = 2) in vec3 instancePosition;    // Boid position
-layout(location = 3) in vec4 instanceRotation;    // Rotation as quaternion
-layout(location = 4) in vec3 instanceColor;       // Boid color
+layout(location = 3) in vec3 instancePosition;    // Boid position
+layout(location = 4) in vec4 instanceRotation;    // Rotation as quaternion
+layout(location = 5) in vec3 instanceColor;       // Boid color
 
 // Uniforms
 uniform mat4 view;
 uniform mat4 projection;
 
-// Outputs to fragment shader
-out vec3 fragNormal;
-out vec3 fragPosition;
-out vec3 fragColor;
+out vec3 vNormal;
+out vec3 vViewSpacePos;
+out vec3 vTexCoord;
+
+// These might replace the instance position and rotation?
+// It's the model view projection matrix for the boid
+//uniform mat4 mvp;
+//uniform mat4 mv_points;
+//uniform mat3 mv_normals;
+
+// // Outputs to fragment shader
+// out vec3 fragNormal;
+// out vec3 fragPosition;
+// out vec3 fragColor;
 
 // Quaternion rotation function
 mat3 quatToMat3(vec4 q) {
@@ -30,19 +41,36 @@ mat3 quatToMat3(vec4 q) {
     );
 }
 
-void main() {
-    // Apply instance transformation to vertex
-    mat3 rotMatrix = quatToMat3(instanceRotation);
-    vec3 worldPos = rotMatrix * vertexPosition + instancePosition;
-    
-    // Calculate world-space normal
-    vec3 worldNormal = normalize(rotMatrix * vertexNormal);
-    
-    // Pass data to fragment shader
-    fragPosition = worldPos;
-    fragNormal = worldNormal;
-    fragColor = instanceColor;
-    
-    // Calculate final position
-    gl_Position = projection * view * vec4(worldPos, 1.0);
+void main()
+{
+	vec3 world_pos = vertex_position + instancePosition;
+    gl_Position = projection * view * vec4(world_pos, 1.0);
+	
+	// Might be missing rotation and stuff here?
+	mat4 mv_points = view * instancePosition;
+	
+	// the mv_normals are relative to the camera view
+	mat3 mv_normals = mat3(mv_points).inverse().transpose();
+
+	vNormal = normalize(mv_normals * vertex_normal);
+	vViewSpacePos = vec3(mv_points * vec4(vertex_position, 1.0));
+	vTexCoord = textCoord;
 }
+
+
+// void main() {
+//     // Apply instance transformation to vertex
+//     mat3 rotMatrix = quatToMat3(instanceRotation);
+//     vec3 worldPos = rotMatrix * vertexPosition + instancePosition;
+    
+//     // Calculate world-space normal
+//     vec3 worldNormal = normalize(rotMatrix * vertexNormal);
+    
+//     // Pass data to fragment shader
+//     fragPosition = worldPos;
+//     fragNormal = worldNormal;
+//     fragColor = instanceColor;
+    
+//     // Calculate final position
+//     gl_Position = projection * view * vec4(worldPos, 1.0);
+// }
