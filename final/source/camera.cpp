@@ -294,6 +294,7 @@ void Camera::HandleMouseMotion(int x, int y) {
       case DOLLY:
         // camera is dollying in or out
         TranslateZ += (constrained_dx + constrained_dy) * 0.05;
+		std::cout << "Dolly: " << TranslateZ << std::endl;
         break;
         
       case ROTATE:
@@ -325,6 +326,7 @@ void Camera::HandleMouseMotion(int x, int y) {
         break;
         
       case TRANSLATE:
+		std::cout << "Translate: " << TranslateX << ", " << TranslateY << std::endl;
         if(constrain){
           TranslateX += constrained_dx * 0.05;
           TranslateY += constrained_dy * 0.05;
@@ -358,21 +360,33 @@ cy::Matrix4f Camera::get_projection_matrix() {
 }
 
 void Camera::UpdateCameraFromAngles() {
-    // Calculate the distance from the camera to the aim point
-    double distance = (Pos - Aim).norm();
+	// Calculate the distance from the camera to the aim point, including dolly (TranslateZ)
+	double distance = (Pos - Aim).norm() + TranslateZ;
 
-    // Convert angles to radians
-    double azim_rad = DegToRad(CurrentAzim);
-    double elev_rad = DegToRad(CurrentElev);
+	// Prevent the camera from flipping or going through the aim point
+	const double min_distance = 0.1;
+	if (distance < min_distance) distance = min_distance;
 
-    // Spherical coordinates to Cartesian
-    double x = distance * cos(elev_rad) * sin(azim_rad);
-    double y = distance * sin(elev_rad);
-    double z = distance * cos(elev_rad) * cos(azim_rad);
+	// Convert angles to radians
+	double azim_rad = DegToRad(CurrentAzim);
+	double elev_rad = DegToRad(CurrentElev);
 
-    // Update camera position
-    Pos = Aim + Vector3d(x, y, z);
+	// Spherical coordinates to Cartesian
+	double x = distance * cos(elev_rad) * sin(azim_rad);
+	double y = distance * sin(elev_rad);
+	double z = distance * cos(elev_rad) * cos(azim_rad);
 
-    // Up vector: for a typical camera, (0,1,0) is fine unless you want to handle gimbal lock
-    Up = Vector3d(0, 1, 0);
+	// Update camera position
+	Vector3d newPos = Aim + Vector3d(x, y, z);
+
+	// Apply pan (TranslateX, TranslateY) in camera's local right and up directions
+	Vector3d forward = (Aim - newPos).normalize();
+	Vector3d right = (forward % Vector3d(0, 1, 0)).normalize();
+	Vector3d up = (right % forward).normalize();
+
+	newPos = newPos + right * TranslateX + up * TranslateY;
+	Aim = Aim + right * TranslateX + up * TranslateY;
+
+	Pos = newPos;
+	Up = up;
 }

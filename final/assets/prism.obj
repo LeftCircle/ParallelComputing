@@ -1,0 +1,53 @@
+# Triangular Prism OBJ File
+# Created by Claude
+
+# Vertices
+v -1.0 -1.0 -1.0  # vertex 1
+v  1.0 -1.0 -1.0  # vertex 2
+v  0.0  1.0 -1.0  # vertex 3
+v -1.0 -1.0  1.0  # vertex 4
+v  1.0 -1.0  1.0  # vertex 5
+v  0.0  1.0  1.0  # vertex 6
+
+# Texture coordinates (not used in this basic example)
+vt 0.0 0.0
+vt 1.0 0.0
+vt 0.5 1.0
+
+# Normals (not calculating accurate normals for simplicity)
+vn  0.0  0.0 -1.0  # back
+vn  0.0  0.0  1.0  # front
+vn  0.0 -1.0  0.0  # bottom
+vn  0.8  0.6  0.0  # right side
+vn -0.8  0.6  0.0  # left side
+
+# Material reference
+mtllib triangular_prism.mtl
+
+# Object name
+o TriangularPrism
+g TriangularPrism
+
+# Material use
+usemtl PrismMaterial
+
+# Faces (triangles)
+# Format: f vertex/texcoord/normal
+
+# Back face (triangular)
+f 1/1/1 2/2/1 3/3/1
+
+# Front face (triangular)
+f 4/1/2 6/3/2 5/2/2
+
+# Bottom face (rectangular, made of 2 triangles)
+f 1/1/3 4/2/3 5/3/3
+f 1/1/3 5/3/3 2/2/3
+
+# Right side face (rectangular, made of 2 triangles)
+f 2/1/4 5/2/4 6/3/4
+f 2/1/4 6/3/4 3/2/4
+
+# Left side face (rectangular, made of 2 triangles)
+f 1/1/5 3/2/5 6/3/5
+f 1/1/5 6/3/5 4/2/5
