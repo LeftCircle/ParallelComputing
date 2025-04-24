@@ -87,13 +87,13 @@ void renderBoids(const std::vector<BoidOOP>& boids) {
         BoidInstance instance;
         
         // Get position
-        Eigen::Vector3d pos = boid.getPosition();
+        Eigen::Vector3f pos = boid.getPosition();
         instance.x = pos[0];
         instance.y = pos[1];
         instance.z = pos[2];
         
         // Calculate orientation quaternion from velocity
-        Eigen::Vector3d vel = boid.getVelocity();
+        Eigen::Vector3f vel = boid.getVelocity();
         // TODO: Convert velocity direction to quaternion
         
         // Set color (could be based on velocity, team, etc.)

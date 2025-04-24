@@ -20,68 +20,68 @@ inline const char* default_obj_path = "assets/cone.obj";
 class BoidOOP {
 public:
 	// The boids model, which is just a triangular prism
-	std::vector<Eigen::Vector3d> model_local_coords{
+	std::vector<Eigen::Vector3f> model_local_coords{
 		// Draw the triange for the base, which is a square
 		// on the XY plane
-		Eigen::Vector3d(-1, 1, 0),
-		Eigen::Vector3d(1, 1, 0),
-		Eigen::Vector3d(1, -1, 0),
-		Eigen::Vector3d(-1, -1, 0),
-		Eigen::Vector3d(-1, 1, 0),
-		Eigen::Vector3d(1, -1, 0),
+		Eigen::Vector3f(-1, 1, 0),
+		Eigen::Vector3f(1, 1, 0),
+		Eigen::Vector3f(1, -1, 0),
+		Eigen::Vector3f(-1, -1, 0),
+		Eigen::Vector3f(-1, 1, 0),
+		Eigen::Vector3f(1, -1, 0),
 
 		// Now draw the four triangles for the prism,
 		// Where the z coordinate is (0, 0, -1)
-		Eigen::Vector3d(-1, 1, 0),
-		Eigen::Vector3d(0, 0, -1),
-		Eigen::Vector3d(1, 1, 0),
+		Eigen::Vector3f(-1, 1, 0),
+		Eigen::Vector3f(0, 0, -1),
+		Eigen::Vector3f(1, 1, 0),
 
-		Eigen::Vector3d(1, 1, 0),
-		Eigen::Vector3d(0, 0, -1),
-		Eigen::Vector3d(1, -1, 0),
+		Eigen::Vector3f(1, 1, 0),
+		Eigen::Vector3f(0, 0, -1),
+		Eigen::Vector3f(1, -1, 0),
 
-		Eigen::Vector3d(1, -1, 0),
-		Eigen::Vector3d(0, 0, -1),
-		Eigen::Vector3d(-1, -1, 0),
+		Eigen::Vector3f(1, -1, 0),
+		Eigen::Vector3f(0, 0, -1),
+		Eigen::Vector3f(-1, -1, 0),
 
-		Eigen::Vector3d(-1, -1, 0),
-		Eigen::Vector3d(0, 0, -1),
-		Eigen::Vector3d(-1, 1, 0)
+		Eigen::Vector3f(-1, -1, 0),
+		Eigen::Vector3f(0, 0, -1),
+		Eigen::Vector3f(-1, 1, 0)
 	};
 
 	
 
 private:
-	Eigen::Vector3d position; 
-	Eigen::Vector3d velocity; 
-	Eigen::Vector3d acceleration; 
+	Eigen::Vector3f position; 
+	Eigen::Vector3f velocity; 
+	Eigen::Vector3f acceleration; 
 	double max_speed; 
 	double max_force;
 
 	
 
 public:
-	BoidOOP(Eigen::Vector3d& new_position, Eigen::Vector3d& new_velocity, double maxSpeed, double maxForce);
+	BoidOOP(Eigen::Vector3f& new_position, Eigen::Vector3f& new_velocity, double maxSpeed, double maxForce);
 	~BoidOOP();
 
 	void update(float dt);
 
-	void applyForce(const Eigen::Vector3d& force);
-	Eigen::Vector3d seek(const Eigen::Vector3d& target);
-	Eigen::Vector3d separate(const std::vector<BoidOOP>& boids, double desiredSeparation);
+	void applyForce(const Eigen::Vector3f& force);
+	Eigen::Vector3f seek(const Eigen::Vector3f& target);
+	Eigen::Vector3f separate(const std::vector<BoidOOP>& boids, double desiredSeparation);
 	void flock(const std::vector<BoidOOP>& boids);
 
-	std::vector<Eigen::Vector3d> get_global_coordinates();
+	std::vector<Eigen::Vector3f> get_global_coordinates();
 
-	const Eigen::Vector3d getPosition() const {
+	const Eigen::Vector3f getPosition() const {
 		return position;
 	}
 
-	const Eigen::Vector3d getVelocity() const {
+	const Eigen::Vector3f getVelocity() const {
 		return velocity;
 	}
 
-	const std::vector<Eigen::Vector3d> getModelLocalCoords() const {
+	const std::vector<Eigen::Vector3f> getModelLocalCoords() const {
 		return model_local_coords;
 	}
 };

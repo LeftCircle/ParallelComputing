@@ -5,17 +5,21 @@ Scene::Scene(int n_boids){
 	// Initialize the view and controller
 	view = new View(&boids);
 	controller = new Controller(view, &boids);
+	Vector3d min(-1, -1, -1);
+	Vector3d max(1, 1, 1);
 	for (int i = 0; i < n_boids; ++i) {
 		// Give each boid a random position and velocity
-		Vector3d rand_pos = rand_vec3d(WORLD_MIN, WORLD_MAX);
-		Vector3d rand_vel = Vector3d(randf_range(-1, 1), randf_range(-1, 1), randf_range(-1, 1));
+		Vector3d rand_pos = rand_vec3d(min, max);
+		Vector3d rand_vel = Vector3d(randf_range(-0.1, 0.1), randf_range(-0.1, 0.1), randf_range(-0.1, 0.1));
 		rand_vel = rand_vel.normalize() * randf_range(0, MAX_SPEED);
-		Eigen::Vector3d position(rand_pos.x, rand_pos.y, rand_pos.z);
-		Eigen::Vector3d velocity(rand_vel.x, rand_vel.y, rand_vel.z);
+		Eigen::Vector3f position(rand_pos.x, rand_pos.y, rand_pos.z);
+		Eigen::Vector3f velocity(rand_vel.x, rand_vel.y, rand_vel.z);
 		// Create a new boid and add it to the vector
 		boids.emplace_back(position, velocity, MAX_SPEED, MAX_FORCE);
 	}
 	view->init_boid_rendering(n_boids);
+	view->world_max = WORLD_MAX;
+	view->world_min = WORLD_MIN;
 }
 
 Scene::~Scene(){

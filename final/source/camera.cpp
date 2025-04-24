@@ -201,16 +201,17 @@ void Camera::PerspectiveDisplay(int W, int H) {
 // using current position, aim, and up vector
 void Camera::AimCamera(){
   glMatrixMode(GL_MODELVIEW);
+  UpdateCameraFromAngles();
   gluLookAt(Pos.x, Pos.y, Pos.z,
             Aim.x, Aim.y, Aim.z,
             Up.x, Up.y, Up.z);
 
   // Translate the camera by accumulated translation
-  glTranslatef (TranslateX, TranslateY, TranslateZ);
+  //glTranslatef (TranslateX, TranslateY, TranslateZ);
 
   // Rotate the camera about its vertical axis (yaw), then about its x axis (pitch)
-  glRotatef(CurrentElev, 1, 0, 0);
-  glRotatef(CurrentAzim, 0, 1, 0);
+  //glRotatef(CurrentElev, 1, 0, 0);
+  //glRotatef(CurrentAzim, 0, 1, 0);
 }
 
 // Position, aim, and orient the camera in the current modelview frame
@@ -354,4 +355,24 @@ cy::Matrix4f Camera::get_projection_matrix() {
 	cy::Matrix4f projection_matrix;
 	projection_matrix.SetPerspective(Fov, 1.0f, NearPlane, FarPlane);
 	return projection_matrix;
+}
+
+void Camera::UpdateCameraFromAngles() {
+    // Calculate the distance from the camera to the aim point
+    double distance = (Pos - Aim).norm();
+
+    // Convert angles to radians
+    double azim_rad = DegToRad(CurrentAzim);
+    double elev_rad = DegToRad(CurrentElev);
+
+    // Spherical coordinates to Cartesian
+    double x = distance * cos(elev_rad) * sin(azim_rad);
+    double y = distance * sin(elev_rad);
+    double z = distance * cos(elev_rad) * cos(azim_rad);
+
+    // Update camera position
+    Pos = Aim + Vector3d(x, y, z);
+
+    // Up vector: for a typical camera, (0,1,0) is fine unless you want to handle gimbal lock
+    Up = Vector3d(0, 1, 0);
 }

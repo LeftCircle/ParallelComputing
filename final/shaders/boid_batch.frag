@@ -6,9 +6,9 @@ in vec3 vNormal;
 in vec3 vViewSpacePos;
 in vec2 vTexCoord;
 
-uniform sampler2D tex;
-uniform sampler2D diffuse_map;
-uniform sampler2D specular_map;
+//uniform sampler2D tex;
+//uniform sampler2D diffuse_map;
+//uniform sampler2D specular_map;
 
 // Light direction might have to be passed by the vertex shader to 
 // be interpolated. But with directional light, it should be fine. 
@@ -23,9 +23,9 @@ uniform float shininess;
 void main()
 {
 	// Texture
-	vec4 tex_color = texture(tex, vTexCoord);
-	vec4 diffuse_color = texture(diffuse_map, vTexCoord);
-	vec4 specular_color = texture(specular_map, vTexCoord);
+	vec4 tex_color = vec4(0.6);//texture(tex, vTexCoord);
+	vec4 diffuse_color = vec4(0.3);//texture(diffuse_map, vTexCoord);
+	vec4 specular_color = vec4(0.9);//texture(specular_map, vTexCoord);
 
 	vec3 diffuse = intensity_k_diffuse * diffuse_color.rgb;
 	vec3 specular = intensity_k_specular * specular_color.rgb;

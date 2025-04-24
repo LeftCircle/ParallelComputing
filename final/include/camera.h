@@ -116,6 +116,7 @@ public:
 
   cy::Matrix4f get_view_matrix();
   cy::Matrix4f get_projection_matrix();
+  void UpdateCameraFromAngles();
 };
 
 #endif

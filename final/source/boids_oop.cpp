@@ -1,6 +1,6 @@
 #include "boids_oop.h"
 
-BoidOOP::BoidOOP(Eigen::Vector3d& new_position, Eigen::Vector3d& new_velocity, double maxSpeed, double maxForce){
+BoidOOP::BoidOOP(Eigen::Vector3f& new_position, Eigen::Vector3f& new_velocity, double maxSpeed, double maxForce){
 	position = new_position;
 	velocity = new_velocity;
 	acceleration.setZero();
@@ -23,27 +23,27 @@ void BoidOOP::update(float dt) {
 	acceleration.setZero(); // Reset acceleration
 }
 
-std::vector<Eigen::Vector3d> BoidOOP::get_global_coordinates() {
-	std::vector<Eigen::Vector3d> global_coords;
-	for (const Eigen::Vector3d& local_coord : model_local_coords) {
+std::vector<Eigen::Vector3f> BoidOOP::get_global_coordinates() {
+	std::vector<Eigen::Vector3f> global_coords;
+	for (const Eigen::Vector3f& local_coord : model_local_coords) {
 		global_coords.push_back(position + local_coord);
 	}
 	return global_coords;
 }
 
 
-void BoidOOP::applyForce(const Eigen::Vector3d& force) {
+void BoidOOP::applyForce(const Eigen::Vector3f& force) {
     // F = ma, but we assume mass = 1, so F = a
     acceleration += force;
 }
 
 // Seek behavior: steer towards a target location
-Eigen::Vector3d BoidOOP::seek(const Eigen::Vector3d& target) {
-    Eigen::Vector3d desired = target - position;
+Eigen::Vector3f BoidOOP::seek(const Eigen::Vector3f& target) {
+    Eigen::Vector3f desired = target - position;
     desired.normalize();
     desired *= max_speed;
     
-    Eigen::Vector3d steer = desired - velocity;
+    Eigen::Vector3f steer = desired - velocity;
     
     // Limit the force
     if (steer.norm() > max_force) {
@@ -54,8 +54,8 @@ Eigen::Vector3d BoidOOP::seek(const Eigen::Vector3d& target) {
 }
 
 // Separation: steer to avoid crowding local flockmates
-Eigen::Vector3d BoidOOP::separate(const std::vector<BoidOOP>& boids, double desiredSeparation) {
-    Eigen::Vector3d steer = Eigen::Vector3d::Zero();
+Eigen::Vector3f BoidOOP::separate(const std::vector<BoidOOP>& boids, double desiredSeparation) {
+    Eigen::Vector3f steer = Eigen::Vector3f::Zero();
     int count = 0;
     
     // Check each boid to see if it's too close
@@ -64,7 +64,7 @@ Eigen::Vector3d BoidOOP::separate(const std::vector<BoidOOP>& boids, double desi
         
         // If the boid is too close
         if ((d > 0) && (d < desiredSeparation)) {
-            Eigen::Vector3d diff = position - other.getPosition();
+            Eigen::Vector3f diff = position - other.getPosition();
             diff.normalize();
             diff /= d;  // Weight by distance
             steer += diff;
@@ -93,13 +93,13 @@ Eigen::Vector3d BoidOOP::separate(const std::vector<BoidOOP>& boids, double desi
 }
 
 void BoidOOP::flock(const std::vector<BoidOOP>& boids) {
-    Eigen::Vector3d sep = separate(boids, 25.0) * 1.5; // Separation has higher weight
+    Eigen::Vector3f sep = separate(boids, 25.0) * 1.5; // Separation has higher weight
     
     // Apply the forces
     applyForce(sep);
     
     // Add boundary forces to keep boids in the world
-    Eigen::Vector3d boundary_force = Eigen::Vector3d::Zero();
+    Eigen::Vector3f boundary_force = Eigen::Vector3f::Zero();
     
     // Simple boundary handling - push away from world edges
     if (position.x() < -100 + 10) boundary_force.x() += 0.1;

@@ -72,7 +72,7 @@ int main(int argc, char** argv) {
 		std::cerr << "Error initializing GLEW: " << glewGetErrorString(err) << std::endl;
 		return -1;
 	}
-	CY_GL_REGISTER_DEBUG_CALLBACK;
+	//CY_GL_REGISTER_DEBUG_CALLBACK;
 	
 	std::cout << "GLEW initialized..." << std::endl;
 	

@@ -26,7 +26,8 @@ protected:
 	std::vector<cy::Vec3f> v_vbo;
 	std::vector<cy::Vec3f> vn_vbo;
 	std::vector<cy::Vec3f> vt_vbo;
-	int* elements; // elements arranged for a VBO to work with an element array buffer
+	//int* elements; // elements arranged for a VBO to work with an element array buffer
+	std::vector<int> elements;
 	unsigned int n_elements;
 	unsigned int vbo_size;
 	float constant_k[3] = { 1.0f, 1.0f, 1.0f }; // constant k values for the phong shading model
@@ -86,30 +87,18 @@ public:
 	void obj_to_gl_elements() {
 		std::cout << "obj_to_gl_elements" << std::endl;
 		auto data = transformObjToGL(*this);
-		std::cout << "Post data" << std::endl;
-		SetNumElements((unsigned int)data._elements.size());
 		
-		std::cout << "Post set num elements" << std::endl;
-		//SetVBOSize((unsigned int)data._v_vbo.size());
-		// Allocate(data._v_vbo.size(), v_vbo, vbo_size);
-		// std::cout << "Post allocate vertices" << std::endl;
-		// Allocate(data._vn_vbo.size(), vn_vbo, vbo_size);
-		// std::cout << "Post allocate normals" << std::endl;
-		// Allocate(data._vt_vbo.size(), vt_vbo, vbo_size);
-		// std::cout << "Post allocate textures" << std::endl;
 		v_vbo = data._v_vbo;
 		vn_vbo = data._vn_vbo;
 		vt_vbo = data._vt_vbo;
-
-		std::cout << "Pre mem copy" << std::endl;
-		// memcpy(v_vbo, data._v_vbo.data(), sizeof(cy::Vec3f) * data._v_vbo.size());
-		// memcpy(vn_vbo, data._vn_vbo.data(), sizeof(cy::Vec3f) * data._vn_vbo.size());
-		// memcpy(vt_vbo, data._vt_vbo.data(), sizeof(cy::Vec3f) * data._vt_vbo.size());
-		// memcpy(elements, data._elements.data(), sizeof(int) * data._elements.size());
-		std::cout << "Post mem copy" << std::endl;
+		elements = data._elements;
+		n_elements = (unsigned int)data._elements.size();
+		vbo_size = (unsigned int)data._v_vbo.size();
+		std::cout << "obj_to_gl_elements done" << std::endl;
+		std::cout << "n_elements: " << n_elements << std::endl;
 	}
 
-	void SetNumElements(unsigned int n) { Allocate(n, elements, n_elements); };
+	void SetNumElements(unsigned int n) { elements.resize(n); n_elements = n; };
 	
 	// Checks to see if we need to allocate data by checking vbo first. If the size is different then also allocate for vn and vt
 	//void SetVBOSize(unsigned int n) { Allocate(n, v_vbo, vbo_size); Allocate(n, vn_vbo); Allocate(n, vt_vbo); };

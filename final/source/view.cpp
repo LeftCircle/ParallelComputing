@@ -201,6 +201,7 @@ void View::toggleBackColor(){
 
 // draws the boids
 void View::drawModel(){
+	draw_bounding_box(world_min, world_max);
 	program.Bind();
 	program.SetUniform("view", camera->get_view_matrix());
 	program.SetUniform("projection", camera->get_projection_matrix());
@@ -210,7 +211,7 @@ void View::drawModel(){
 	 program.SetUniform("light_direction", light_dir);
 
 	// TODO -> don't create the pos vector each frame
-	std::vector<Eigen::Vector3d> positions;
+	std::vector<Eigen::Vector3f> positions;
 	positions.reserve(boids->size());
 	for (const BoidOOP& boid : *boids) {
 		positions.push_back(boid.getPosition());
@@ -218,8 +219,8 @@ void View::drawModel(){
 
 	// Update the instance buffer with new positions
 	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Eigen::Vector3d) * positions.size(), positions.data());
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * positions.size(), positions.data(), GL_STREAM_DRAW);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Eigen::Vector3f) * positions.size(), positions.data());
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3f) * positions.size(), positions.data(), GL_STREAM_DRAW);
 
 	// Bind VAO and draw all instances
 	glBindVertexArray(boidVAO);
@@ -309,6 +310,11 @@ void View::register_obj_mesh(const char* obj_path){
 		return;
 	}
 	mesh.obj_to_gl_elements();
+	if (mesh.get_vbo_size() > 10000000) {
+		std::cerr << "Mesh is too large to be loaded." << std::endl;
+		return;
+	}
+	std::cout << "Mesh loaded successfully." << std::endl;
 	_bind_mesh(mesh);
 }
 
@@ -325,6 +331,8 @@ void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
 
 	//GLuint v_vbo, vn_vbo, vt_vbo, ebuffer;
 	
+	std::cout << "VBO size: " << mesh.get_vbo_size() << std::endl;
+	std::cout << "Element size: " << mesh.get_n_elements() << std::endl;
 
 	glGenBuffers(1, &vertexVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
@@ -354,6 +362,7 @@ void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
 	bool shader_comp_success = program.BuildFiles("shaders/boid_batch.vert", "shaders/boid_batch.frag");
 	if (!shader_comp_success) {
 		std::cerr << "Failed to compile shaders." << std::endl;
+		std::cout << "SHADER COMP FAILED" << std::endl;
 		return;
 	}
 	program.Bind();
@@ -365,15 +374,19 @@ void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
 
 void View::_bind_textures(rc::rcTriMeshForGL& mesh){
 	// Load the texture
-	cy::TriMesh::Mtl const& mtl = mesh.M(0);
-	rc::Texture texture(mtl.map_Ka.data);
-	_bind_material(mesh, texture, 0, "tex");
+	// if (mesh.NM() == 0) {
+	// 	std::cerr << "No materials found in mesh." << std::endl;
+	// 	return;
+	// }
+	// cy::TriMesh::Mtl const& mtl = mesh.M(0);
+	// rc::Texture texture(mtl.map_Ka.data);
+	// _bind_material(mesh, texture, 0, "tex");
 
-	rc::Texture diffuse_texture(mtl.map_Kd.data);
-	_bind_material(mesh, diffuse_texture, 1, "diffuse_map");
+	// rc::Texture diffuse_texture(mtl.map_Kd.data);
+	// _bind_material(mesh, diffuse_texture, 1, "diffuse_map");
 	
-	rc::Texture specular_texture(mtl.map_Ks.data);
-	_bind_material(mesh, specular_texture, 2, "specular_map");
+	// rc::Texture specular_texture(mtl.map_Ks.data);
+	// _bind_material(mesh, specular_texture, 2, "specular_map");
 
 	// Now for the material parts
 	program["intensity_k_diffuse"] = cy::Vec3f(0.4, 0.4, 0.4);//cy::Vec3f(mtl.Kd[0], mtl.Kd[1], mtl.Kd[2]);
@@ -398,12 +411,12 @@ void View::init_boid_rendering(const int n_boids){
 	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
 
 	// Allocate space for the position buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * n_boids, NULL, GL_STREAM_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3f) * n_boids, NULL, GL_STREAM_DRAW);
 
 	// Configure position attributes
     glEnableVertexAttribArray(3);
 	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
-	glVertexAttribPointer(3, 3, GL_DOUBLE, GL_FALSE, sizeof(Eigen::Vector3d), (void*)0);
+	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Eigen::Vector3f), (void*)0);
 	// This lets OpenGL know that the data in the buffer is per-instance
 	glVertexAttribDivisor(3, 1);
 
@@ -413,4 +426,31 @@ void View::init_boid_rendering(const int n_boids){
     
     // Unbind when done
     glBindVertexArray(0);
+}
+
+void View::draw_bounding_box(const Vector3d & min, const Vector3d& max){
+	glColor3f(1.0f, 0.0f, 0.0f); // Red color for the box
+    glBegin(GL_LINE_LOOP);
+    // Bottom face
+    glVertex3f(min.x, min.y, min.z);
+    glVertex3f(max.x, min.y, min.z);
+    glVertex3f(max.x, max.y, min.z);
+    glVertex3f(min.x, max.y, min.z);
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    // Top face
+    glVertex3f(min.x, min.y, max.z);
+    glVertex3f(max.x, min.y, max.z);
+    glVertex3f(max.x, max.y, max.z);
+    glVertex3f(min.x, max.y, max.z);
+    glEnd();
+
+    glBegin(GL_LINES);
+    // Vertical edges
+    glVertex3f(min.x, min.y, min.z); glVertex3f(min.x, min.y, max.z);
+    glVertex3f(max.x, min.y, min.z); glVertex3f(max.x, min.y, max.z);
+    glVertex3f(max.x, max.y, min.z); glVertex3f(max.x, max.y, max.z);
+    glVertex3f(min.x, max.y, min.z); glVertex3f(min.x, max.y, max.z);
+    glEnd();
 }

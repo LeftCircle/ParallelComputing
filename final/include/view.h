@@ -23,6 +23,10 @@
 #define __VIEW_H__
 
 class View{
+public:
+	Vector3d world_min;
+	Vector3d world_max;
+
 private:
 	const int width;                // initial window dimensions
 	const int height;               // proportions match 1080p proportions but 1/2 scale
@@ -121,6 +125,7 @@ public:
 	void register_obj_mesh(const char* obj_path);
 
 	void init_boid_rendering(const int n_boids);
+	void draw_bounding_box(const Vector3d& min, const Vector3d& max);
 	
 };
 

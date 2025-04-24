@@ -36,8 +36,8 @@ void main()
 	vec3 world_pos = vertex_position + instancePosition;
     
 	// Calculate view space position
-    vec4 viewPos = view * vec4(worldPos, 1.0);
-    vViewSpacePos = viewPos.xyz;
+    vec4 view_pos = view * vec4(world_pos, 1.0);
+    vViewSpacePos = view_pos.xyz;
     
     // Transform normal to view space
     mat3 normalMatrix = transpose(inverse(mat3(view)));
@@ -47,33 +47,7 @@ void main()
     vTexCoord = vertex_texcoord;
     
     // Calculate final clip space position
-    gl_Position = projection * viewPos;
+    gl_Position = projection * view_pos;
 	
-	// ---------------------------------------------
-	// the mv_normals are relative to the camera view
-	// mat3 mv_normals = mat3(mv_points).inverse().transpose();
-
-	// vNormal = normalize(mv_normals * vertex_normal);
-	// vViewSpacePos = vec3(mv_points * vec4(vertex_position, 1.0));
-	// vTexCoord = textCoord;
-
-	// gl_Position = projection * view * vec4(world_pos, 1.0);
 }
 
-
-// void main() {
-//     // Apply instance transformation to vertex
-//     mat3 rotMatrix = quatToMat3(instanceRotation);
-//     vec3 worldPos = rotMatrix * vertexPosition + instancePosition;
-    
-//     // Calculate world-space normal
-//     vec3 worldNormal = normalize(rotMatrix * vertexNormal);
-    
-//     // Pass data to fragment shader
-//     fragPosition = worldPos;
-//     fragNormal = worldNormal;
-//     fragColor = instanceColor;
-    
-//     // Calculate final position
-//     gl_Position = projection * view * vec4(worldPos, 1.0);
-// }
