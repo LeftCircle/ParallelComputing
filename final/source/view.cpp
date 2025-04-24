@@ -201,18 +201,13 @@ void View::toggleBackColor(){
 
 // draws the boids
 void View::drawModel(){
-	// for (BoidOOP& boid : *boids) {	
-	// 	std::vector<Eigen::Vector3d> global_coords = boid.get_global_coordinates();
-	// 	glBegin(GL_TRIANGLES);
-	// 	for (const Eigen::Vector3d& vertex : global_coords) {
-	// 		glVertex3f(vertex[0], vertex[1], vertex[2]);
-	// 	}
-	// 	glEnd();
-	// }
-
-	// Set the model and view matrix
+	program.Bind();
 	program.SetUniform("view", camera->get_view_matrix());
 	program.SetUniform("projection", camera->get_projection_matrix());
+
+	 // Set light direction for shading
+	 cy::Vec3f light_dir(0.0f, 1.0f, 1.0f);  // Example direction
+	 program.SetUniform("light_direction", light_dir);
 
 	// TODO -> don't create the pos vector each frame
 	std::vector<Eigen::Vector3d> positions;
@@ -220,25 +215,22 @@ void View::drawModel(){
 	for (const BoidOOP& boid : *boids) {
 		positions.push_back(boid.getPosition());
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
-	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Eigen::Vector3d) * positions.size(), positions.data());
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * positions.size(), positions.data(), GL_STREAM_DRAW);
 
-	// Draw all boids with instanced rendering
+	// Update the instance buffer with new positions
+	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Eigen::Vector3d) * positions.size(), positions.data());
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * positions.size(), positions.data(), GL_STREAM_DRAW);
+
+	// Bind VAO and draw all instances
 	glBindVertexArray(boidVAO);
 	glDrawElementsInstanced(
 		GL_TRIANGLES,
 		_meshes[0].get_n_elements(), // Number of indices
 		GL_UNSIGNED_INT,
-		0, // offset in the EBO
-		positions.size() // Number of instances
+		0, 							 // offset in the EBO
+		positions.size() 			 // Number of instances
 	);
-
-	// Not the best method since the boids aren't linked to the mesh type. Right now really
-	// only supports one mesh
-	// for (rc::rcTriMeshForGL& mesh : _meshes) {
-	// 	glDrawElements(GL_TRIANGLES, mesh.get_n_elements(), GL_UNSIGNED_INT, 0);
-	// }
+	glBindVertexArray(0);
 }
 
 //
@@ -332,31 +324,43 @@ void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
 	glBindVertexArray(boidVAO);
 
 	//GLuint v_vbo, vn_vbo, vt_vbo, ebuffer;
-	GLuint ebuffer;
+	
 
 	glGenBuffers(1, &vertexVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.V_vbo(0), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glGenBuffers(1, &normalVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, normalVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.VN_vbo(0), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
 
 	glGenBuffers(1, &texVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, texVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cy::Vec3f) * mesh.get_vbo_size(), &mesh.VT_vbo(0), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+	GLuint ebuffer;
 	glGenBuffers(1, &ebuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * mesh.get_n_elements(), &mesh.E(0), GL_STATIC_DRAW);
 
 	// Load the shaders with cy calls
 	bool shader_comp_success = program.BuildFiles("shaders/boid_batch.vert", "shaders/boid_batch.frag");
+	if (!shader_comp_success) {
+		std::cerr << "Failed to compile shaders." << std::endl;
+		return;
+	}
 	program.Bind();
 
-	program.SetAttribBuffer("vertex_position", vertexVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	program.SetAttribBuffer("vertex_normal", normalVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
-	program.SetAttribBuffer("vertex_text_coord", texVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// program.SetAttribBuffer("vertex_position", vertexVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// program.SetAttribBuffer("vertex_normal", normalVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	// program.SetAttribBuffer("vertex_text_coord", texVBO, 3, GL_FLOAT, GL_FALSE, 0, 0);
 }
 
 void View::_bind_textures(rc::rcTriMeshForGL& mesh){
@@ -393,18 +397,20 @@ void View::init_boid_rendering(const int n_boids){
 	glGenBuffers(1, &isntanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
 
+	// Allocate space for the position buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3d) * n_boids, NULL, GL_STREAM_DRAW);
 
-	// Configure instance attributes
-    // Position attribute (layout location = 3 in your shader)
+	// Configure position attributes
     glEnableVertexAttribArray(3);
+	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
 	glVertexAttribPointer(3, 3, GL_DOUBLE, GL_FALSE, sizeof(Eigen::Vector3d), (void*)0);
-	glVertexAttribDivisor(3, 1); // Update this attribute per instance
+	// This lets OpenGL know that the data in the buffer is per-instance
+	glVertexAttribDivisor(3, 1);
 
 	// TODO -> Might have to set rotation and color and stuff here?
     
 
     
-    // Make sure to bind back to your main VAO
-    glBindVertexArray(boidVAO);
+    // Unbind when done
+    glBindVertexArray(0);
 }

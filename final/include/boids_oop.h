@@ -67,6 +67,10 @@ public:
 	void update(float dt);
 
 	void applyForce(const Eigen::Vector3d& force);
+	Eigen::Vector3d seek(const Eigen::Vector3d& target);
+	Eigen::Vector3d separate(const std::vector<BoidOOP>& boids, double desiredSeparation);
+	void flock(const std::vector<BoidOOP>& boids);
+
 	std::vector<Eigen::Vector3d> get_global_coordinates();
 
 	const Eigen::Vector3d getPosition() const {
