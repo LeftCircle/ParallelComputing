@@ -201,8 +201,8 @@ void View::toggleBackColor(){
 
 // draws the boids
 void View::drawModel(){
-	draw_bounding_box(world_min, world_max);
-	program.Bind();
+	//draw_bounding_box(world_min, world_max);
+	//program.Bind();
 	program.SetUniform("view", camera->get_view_matrix());
 	program.SetUniform("projection", camera->get_projection_matrix());
 
@@ -210,20 +210,18 @@ void View::drawModel(){
 	 cy::Vec3f light_dir(0.0f, 1.0f, 1.0f);  // Example direction
 	 program.SetUniform("light_direction", light_dir);
 
-	// TODO -> don't create the pos vector each frame
-	std::vector<Eigen::Vector3f> positions;
-	positions.reserve(boids->size());
+	
 	for (const BoidOOP& boid : *boids) {
 		positions.push_back(boid.getPosition());
 	}
 
 	// Update the instance buffer with new positions
-	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Eigen::Vector3f) * positions.size(), positions.data());
 	//glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3f) * positions.size(), positions.data(), GL_STREAM_DRAW);
 
 	// Bind VAO and draw all instances
-	glBindVertexArray(boidVAO);
+	//glBindVertexArray(boidVAO);
 	glDrawElementsInstanced(
 		GL_TRIANGLES,
 		_meshes[0].get_n_elements(), // Number of indices
@@ -231,7 +229,7 @@ void View::drawModel(){
 		0, 							 // offset in the EBO
 		positions.size() 			 // Number of instances
 	);
-	glBindVertexArray(0);
+	//glBindVertexArray(0);
 }
 
 //
@@ -302,6 +300,7 @@ void View::reshapeWindow(int w, int h){
 }
 
 void View::register_obj_mesh(const char* obj_path){
+	std::cout << "Loading mesh from file: " << obj_path << std::endl;
 	rc::rcTriMeshForGL mesh;
 	_meshes.push_back(mesh);
 	bool success = mesh.LoadFromFileObj(obj_path);
@@ -326,7 +325,7 @@ void View::_bind_mesh(rc::rcTriMeshForGL& mesh){
 void View::_bind_buffers(rc::rcTriMeshForGL& mesh){
 	// TODO -> register the VAO to the mesh for later use
 	// For now we are just using the boid vao - same for vbos
-	glGenVertexArrays(1, &boidVAO);
+	//glGenVertexArrays(1, &boidVAO);
 	glBindVertexArray(boidVAO);
 
 	//GLuint v_vbo, vn_vbo, vt_vbo, ebuffer;
@@ -406,16 +405,22 @@ void View::_bind_material(rc::rcTriMeshForGL& mesh, rc::Texture& texture, const 
 }
 
 void View::init_boid_rendering(const int n_boids){
+	positions.reserve(boids->size());
 	// Create the instance buffer
-	glGenBuffers(1, &isntanceVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 
 	// Allocate space for the position buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Eigen::Vector3f) * n_boids, NULL, GL_STREAM_DRAW);
 
+
+	// Binding the boids VAO so the vbo is associated with it
+	glGenVertexArrays(1, &boidVAO);
+	glBindVertexArray(boidVAO);
+
 	// Configure position attributes
     glEnableVertexAttribArray(3);
-	glBindBuffer(GL_ARRAY_BUFFER, isntanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Eigen::Vector3f), (void*)0);
 	// This lets OpenGL know that the data in the buffer is per-instance
 	glVertexAttribDivisor(3, 1);

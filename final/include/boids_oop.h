@@ -58,6 +58,8 @@ private:
 	double max_speed; 
 	double max_force;
 
+	void apply_boundary_conditions(Eigen::Vector3f& min, Eigen::Vector3f& max);
+
 	
 
 public:

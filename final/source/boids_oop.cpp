@@ -14,7 +14,11 @@ BoidOOP::~BoidOOP() {
 
 void BoidOOP::update(float dt) {
 	// Update the position and velocity of the boid
+	Eigen::Vector3f min = Eigen::Vector3f(-100, -100, -100);
+	Eigen::Vector3f max = Eigen::Vector3f(100, 100, 100);
+	apply_boundary_conditions(min, max);
 	velocity += acceleration * dt;
+	//std::cout << "Velocity: " << velocity.transpose() << " Position: " << position.transpose() << std::endl;
 	float squared_speed = velocity.squaredNorm();
 	if (squared_speed > max_speed * max_speed) {
 		velocity = velocity.normalized() * max_speed; // Limit speed
@@ -110,4 +114,34 @@ void BoidOOP::flock(const std::vector<BoidOOP>& boids) {
     if (position.z() > 100 - 10) boundary_force.z() -= 0.1;
     
     applyForce(boundary_force);
+}
+
+void BoidOOP::apply_boundary_conditions(Eigen::Vector3f& min, Eigen::Vector3f& max) {
+	// Check if the boid is outside the world boundaries
+	if (position.x() < min.x()) {
+		position.x() = min.x();
+		velocity.x() *= -1;
+	}
+	else if (position.x() > max.x()) {
+		position.x() = max.x();
+		velocity.x() *= -1;
+	}
+	
+	if (position.y() < min.y()) {
+		position.y() = min.y();
+		velocity.y() *= -1;
+	}
+	else if (position.y() > max.y()) {
+		position.y() = max.y();
+		velocity.y() *= -1;
+	}
+	
+	if (position.z() < min.z()) {
+		position.z() = min.z();
+		velocity.z() *= -1;
+	}
+	else if (position.z() > max.z()) {
+		position.z() = max.z();
+		velocity.z() *= -1;
+	}
 }

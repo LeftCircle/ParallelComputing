@@ -294,7 +294,6 @@ void Camera::HandleMouseMotion(int x, int y) {
       case DOLLY:
         // camera is dollying in or out
         TranslateZ += (constrained_dx + constrained_dy) * 0.05;
-		std::cout << "Dolly: " << TranslateZ << std::endl;
         break;
         
       case ROTATE:
@@ -326,7 +325,6 @@ void Camera::HandleMouseMotion(int x, int y) {
         break;
         
       case TRANSLATE:
-		std::cout << "Translate: " << TranslateX << ", " << TranslateY << std::endl;
         if(constrain){
           TranslateX += constrained_dx * 0.05;
           TranslateY += constrained_dy * 0.05;
@@ -362,6 +360,7 @@ cy::Matrix4f Camera::get_projection_matrix() {
 void Camera::UpdateCameraFromAngles() {
 	// Calculate the distance from the camera to the aim point, including dolly (TranslateZ)
 	double distance = (Pos - Aim).norm() + TranslateZ;
+	TranslateZ = 0; // Reset TranslateZ after using it
 
 	// Prevent the camera from flipping or going through the aim point
 	const double min_distance = 0.1;

@@ -11,9 +11,7 @@
 #include "vector.h"
 
 
-const Vector3d WORLD_MIN(-100, -100, -100);
-const Vector3d WORLD_MAX(100, 100, 100);
-const float MAX_SPEED = 0.25;
+
 const float MAX_FORCE = 1.0;
 
 
@@ -22,7 +20,10 @@ Vector3d rand_vec3d(const Vector3d& min, const Vector3d& max);
 
 class Scene {
 public:
-	Scene(int n_boids);
+	Vector3d WORLD_MIN = Vector3d(-100, -100, -100);
+	Vector3d WORLD_MAX = Vector3d(100, 100, 100);
+	float MAX_SPEED = 3.0f;
+	Scene(int n_boids, const Vector3d& world_min, const Vector3d& world_max, float max_speed);
 	~Scene();
 
 public:

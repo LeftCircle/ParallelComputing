@@ -1,17 +1,19 @@
 #include "scene.h"
 
 
-Scene::Scene(int n_boids){
+Scene::Scene(int n_boids, const Vector3d& world_min, const Vector3d& world_max, float max_speed){
 	// Initialize the view and controller
+	MAX_SPEED = max_speed;
+	WORLD_MAX = world_max;
+	WORLD_MIN = world_min;
 	view = new View(&boids);
 	controller = new Controller(view, &boids);
-	Vector3d min(-1, -1, -1);
-	Vector3d max(1, 1, 1);
+	const float speed_range = 300.0;
 	for (int i = 0; i < n_boids; ++i) {
 		// Give each boid a random position and velocity
-		Vector3d rand_pos = rand_vec3d(min, max);
-		Vector3d rand_vel = Vector3d(randf_range(-0.1, 0.1), randf_range(-0.1, 0.1), randf_range(-0.1, 0.1));
-		rand_vel = rand_vel.normalize() * randf_range(0, MAX_SPEED);
+		Vector3d rand_pos = rand_vec3d(world_min / 2.0, world_max / 2.0);
+		Vector3d rand_vel = Vector3d(randf_range(-speed_range, speed_range), randf_range(-speed_range, speed_range), randf_range(-speed_range, speed_range));
+		rand_vel = rand_vel.normalize() * randf_range(0, max_speed);
 		Eigen::Vector3f position(rand_pos.x, rand_pos.y, rand_pos.z);
 		Eigen::Vector3f velocity(rand_vel.x, rand_vel.y, rand_vel.z);
 		// Create a new boid and add it to the vector
@@ -20,6 +22,7 @@ Scene::Scene(int n_boids){
 	view->init_boid_rendering(n_boids);
 	view->world_max = WORLD_MAX;
 	view->world_min = WORLD_MIN;
+	
 }
 
 Scene::~Scene(){

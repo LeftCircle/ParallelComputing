@@ -2,12 +2,12 @@
 # Created by Claude
 
 # Vertices
-v -1.0 -1.0 -1.0  # vertex 1
-v  1.0 -1.0 -1.0  # vertex 2
-v  0.0  1.0 -1.0  # vertex 3
-v -1.0 -1.0  1.0  # vertex 4
-v  1.0 -1.0  1.0  # vertex 5
-v  0.0  1.0  1.0  # vertex 6
+v -10.0 -10.0 -10.0  # vertex 10
+v  10.0 -10.0 -10.0  # vertex 2
+v  0.0  10.0 -10.0  # vertex 3
+v -10.0 -10.0  10.0  # vertex 4
+v  10.0 -10.0  10.0  # vertex 5
+v  0.0  10.0  10.0  # vertex 6
 
 # Texture coordinates (not used in this basic example)
 vt 0.0 0.0
@@ -22,7 +22,7 @@ vn  0.8  0.6  0.0  # right side
 vn -0.8  0.6  0.0  # left side
 
 # Material reference
-mtllib triangular_prism.mtl
+mtllib prism.mtl
 
 # Object name
 o TriangularPrism

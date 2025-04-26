@@ -1,0 +1,6 @@
+n_boids=100
+max_speed=3.0
+max_force=1.2
+world_min=-100,-100,-100
+world_max=100,100,100
+obj_path=assets/cone.obj

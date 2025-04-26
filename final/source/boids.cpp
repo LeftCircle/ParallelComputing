@@ -13,6 +13,7 @@
 #include "view.h"
 #include "controller.h"
 #include "scene.h"
+#include "params.h"
 
 const float dt = 1.0 / 60.0; // time step for simulation
 
@@ -21,14 +22,18 @@ Scene* scene_ptr = nullptr; // Global pointer to the scene
 
 void doSimulation() {
 	// Update the boid's position and velocity
-	for (BoidOOP& boid : scene_ptr->boids) {
-		boid.flock(scene_ptr->boids);
-		boid.update(dt);
+	static int last_time = 0;
+	int current_time = glutGet(GLUT_ELAPSED_TIME);
+	int elapsed_time = current_time - last_time;
+		
+	if (elapsed_time >= 1000 / 60) { // 60 FPS
+		//std::cout << "Elapsed time: " << elapsed_time << " ms" << std::endl;
+		last_time = current_time;
+		for (BoidOOP& boid : scene_ptr->boids) {
+			boid.update(dt);
+		}
+		glutPostRedisplay();
 	}
-	static int count = 0;
-  
-	//if(count == 0)         // only update the display after every displayInterval time steps
-	glutPostRedisplay();
 	
 	//count = (count + 1) % BubbleModel.displayInterval();
 }
@@ -60,6 +65,8 @@ int main(int argc, char** argv) {
 		run_tests();
 		return 0;
 	}
+	Params params;
+	params.load("params.txt");
 
 	glutInit(&argc, argv);
 	std::cout << "GLUT initialized..." << std::endl;
@@ -76,7 +83,7 @@ int main(int argc, char** argv) {
 	
 	std::cout << "GLEW initialized..." << std::endl;
 	
-	Scene scene(100); // Create a scene with 100 boids
+	Scene scene(params.n_boids, params.world_min, params.world_max, params.max_speed); // Create a scene with 100 boids
 	scene_ptr = &scene; // Set the global pointer to the scene
 	
 
@@ -92,7 +99,7 @@ int main(int argc, char** argv) {
 	
 	// set up the camera viewpoint, materials, and lights
 	scene.view->setInitialView();
-	scene.view->register_obj_mesh(default_obj_path);
+	scene.view->register_obj_mesh(params.obj_path.c_str());
 	
 	glutMainLoop();
 

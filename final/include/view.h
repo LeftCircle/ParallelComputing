@@ -75,11 +75,13 @@ private:
 
 	std::vector<rc::rcTriMeshForGL> _meshes;
 
-	GLuint isntanceVBO;
+	GLuint instanceVBO;
 	GLuint vertexVBO;
 	GLuint normalVBO;
 	GLuint texVBO;
 	GLuint boidVAO;
+
+	std::vector<Eigen::Vector3f> positions;
 
 	// position the lights, never called outside of this class
 	void setLights();
